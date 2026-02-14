@@ -77,6 +77,9 @@ uintptr_t ScanIDAPattern(std::string_view signature, int32_t offset, int32_t rel
 			addr = ReadOffsetData(addr, relOffset, instructionLength);
 		}
 	}
+  if (!addr) {
+    throw std::runtime_error("failed to find pattern: " + std::string(signature));
+  }
 	return addr;
 }
 

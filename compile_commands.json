@@ -40,9 +40,9 @@
     "file": "D:\\dev\\nioh3\\plugins\\FireAlma\\main.cpp"
   },
   {
-    "directory": "D:\\dev\\nioh3\\build\\plugins\\TransmogUnlocker",
-    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DTransmogUnlocker_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\TransmogUnlocker\\main.cpp",
-    "file": "D:\\dev\\nioh3\\plugins\\TransmogUnlocker\\main.cpp"
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\UnlimitedTransmog",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DUnlimitedTransmog_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\UnlimitedTransmog\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\UnlimitedTransmog\\main.cpp"
   },
   {
     "directory": "D:\\dev\\nioh3\\build\\common",

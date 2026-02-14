@@ -111,21 +111,63 @@ void SoulCoreDataManager::Dump() const {
     _MESSAGE("========================================");
 }
 
-// Pointer chain: game state -> +0x1328 (PlayerManager) -> +0x3A0 (PlayerData)
-void* GetPlayerData()
+GameStateManager::PlayerManager* GameStateManager::GetPlayerManager(int32_t playerIndex)
 {
+    if (playerIndex < 0 || playerIndex >= 4) {
+        return nullptr;
+    }
     if ((*g_gameState) == nullptr) {
         return nullptr;
     }
-    void* playerManager = *(void**)((uint8_t*)(*g_gameState) + 4904);
+    return (*g_gameState)->players[playerIndex].playerManager;
+}
+
+GameStateManager::PlayerData* GameStateManager::GetPlayerData(int32_t playerIndex)
+{
+    auto* playerManager = GetPlayerManager(playerIndex);
     if (playerManager == nullptr) {
         return nullptr;
     }
-    void* playerData = *(void**)((uint8_t*)playerManager + 928);
-    return playerData;
+    return playerManager->playerData;
 }
 
-// PlayerData + 0x570 = equipment slots base; each set 3952 bytes (17 slots), each slot 232 bytes
+uint64_t GameStateManager::GetCurrentHealth(int32_t playerIndex)
+{
+    auto* playerData = GetPlayerData(playerIndex);
+    return playerData ? playerData->GetCurrentHealth() : 0;
+}
+
+uint64_t GameStateManager::GetMaxHealthRaw(int32_t playerIndex)
+{
+    auto* playerData = GetPlayerData(playerIndex);
+    return playerData ? playerData->GetMaxHealthRaw() : 0;
+}
+
+float GameStateManager::GetHealthScale(int32_t playerIndex)
+{
+    auto* playerData = GetPlayerData(playerIndex);
+    return playerData ? playerData->GetHealthScale() : 0.0f;
+}
+
+float GameStateManager::GetCurrentGuardianSpiritProgress(int32_t playerIndex)
+{
+    auto* playerData = GetPlayerData(playerIndex);
+    return playerData ? playerData->GetCurrentGuardianSpiritProgress() : 0.0f;
+}
+
+int32_t GameStateManager::GetMaxGuardianSpiritProgress(int32_t playerIndex)
+{
+    auto* playerData = GetPlayerData(playerIndex);
+    return playerData ? playerData->GetMaxGuardianSpiritProgress() : 0;
+}
+
+float GameStateManager::GetGuardianSpiritProgressRatio(int32_t playerIndex)
+{
+    auto* playerData = GetPlayerData(playerIndex);
+    return playerData ? playerData->GetGuardianSpiritProgressRatio() : 0.0f;
+}
+
+// PlayerData + 0x570 = samurai, +0x14E0 = ninja
 void* GameStateManager::GetEquipmentSlotBase(int32_t slotIndex, int32_t setIndex)
 {
     if (slotIndex < 0 || slotIndex > 16) {
@@ -134,29 +176,31 @@ void* GameStateManager::GetEquipmentSlotBase(int32_t slotIndex, int32_t setIndex
     if (setIndex < 0 || setIndex >= 2) {
         return nullptr;
     }
-    void* playerData = GetPlayerData();
+    auto* playerData = GetPlayerData();
     if (playerData == nullptr) {
         return nullptr;
     }
-    return (uint8_t*)playerData + 1392;
+    return (setIndex == 0)
+        ? static_cast<void*>(playerData->samuraiEquipments)
+        : static_cast<void*>(playerData->ninjaEquipments);
 }
 
 int32_t GameStateManager::GetActiveSetIndex()
 {
-    void* playerData = GetPlayerData();
+    auto* playerData = GetPlayerData();
     if (playerData == nullptr) {
         return 0;
     }
-    return *(int32_t*)((uint8_t*)playerData + 9296);
+    return playerData->activeSlotIndex;
 }
 
 InventoryItemData* GameStateManager::GetEquipmentItemFromSlot(int32_t slotIndex, int32_t setIndex)
 {
-    auto* slotBasePtr = GetEquipmentSlotBase(slotIndex, setIndex);
-    const int32_t SET_STRIDE = 3952;
-    const int32_t SLOT_STRIDE = 232;
-    uint8_t* slotPtr = (uint8_t*)slotBasePtr + (setIndex * SET_STRIDE) + (slotIndex * SLOT_STRIDE);
-    return (InventoryItemData*)slotPtr;
+    auto* slotBasePtr = reinterpret_cast<InventoryItemData*>(GetEquipmentSlotBase(slotIndex, setIndex));
+    if (slotBasePtr == nullptr) {
+        return nullptr;
+    }
+    return &slotBasePtr[slotIndex];
 }
 
 

@@ -438,21 +438,71 @@ inline REL::Relocation<ResourceManager**> g_resManager(REL::Offset(0x438B8E0));
 // --- Game state ---
 
 struct GameStateManager {
+    // hpContext = playerData + 0x38, used by sub_1403C9398 (set current HP)
+    struct HealthContext {
+        uint64_t unk00;        // +0x00
+        void* notifier;        // +0x08
+        uint32_t state;        // +0x10
+        uint32_t unk14;        // +0x14
+        uint64_t maxHealthRaw; // +0x18
+        uint64_t currentHealth; // +0x20
+        uint32_t minHealth;    // +0x28
+        uint32_t unk2C;        // +0x2C
+        uint64_t unk30;        // +0x30
+        float healthScale;     // +0x38
+        uint32_t unk3C;        // +0x3C
+    };
+    static_assert(sizeof(HealthContext) == 0x40);
+    static_assert(offsetof(HealthContext, currentHealth) == 0x20);
+
+    
+    struct GuardianSpiritProgressContext {
+        uint64_t unk00;         // +0x00
+        void* notifier;         // +0x08
+        uint32_t unk10;         // +0x10
+        float currentProgress;  // +0x14
+        uint32_t unk18;         // +0x18
+        int32_t maxProgress;    // +0x1C
+        float cooldown;         // +0x20
+        uint32_t unk24;         // +0x24
+    };
+    static_assert(sizeof(GuardianSpiritProgressContext) == 0x28);
+    static_assert(offsetof(GuardianSpiritProgressContext, currentProgress) == 0x14);
+    static_assert(offsetof(GuardianSpiritProgressContext, maxProgress) == 0x1C);
     struct PlayerData {
-        uint64_t unk00[0x570 >> 3];
+        uint8_t unk00[0x38];
+        HealthContext healthContext;              // +0x38
+        uint8_t unk78[0x140 - 0x78];
+        GuardianSpiritProgressContext guardianSpiritCtx; // +0x140
+        uint8_t unk168[0x570 - 0x168];
         InventoryItemData samuraiEquipments[17];  // +0x570
         uint64_t unk14D8;                         // +0x14D8
         InventoryItemData ninjaEquipments[17];    // +0x14E0
         uint64_t unk2448;                         // +0x2448
-        int32_t activeSlotIndex;                  // +0x2450
+        int32_t activeSlotIndex;                  // +0x2450 // 0 = samurai, 1 = ninja
+
+        uint64_t GetCurrentHealth() const { return healthContext.currentHealth; }
+        uint64_t GetMaxHealthRaw() const { return healthContext.maxHealthRaw; }
+        float GetHealthScale() const { return healthContext.healthScale; }
+        float GetCurrentGuardianSpiritProgress() const { return guardianSpiritCtx.currentProgress; }
+        int32_t GetMaxGuardianSpiritProgress() const { return guardianSpiritCtx.maxProgress; }
+        float GetGuardianSpiritProgressRatio() const {
+            return guardianSpiritCtx.maxProgress > 0
+                ? guardianSpiritCtx.currentProgress / static_cast<float>(guardianSpiritCtx.maxProgress)
+                : 0.0f;
+        }
     };
+    static_assert(offsetof(PlayerData, healthContext) == 0x38);
+    static_assert(offsetof(PlayerData, healthContext) == 0x38);
+    static_assert(offsetof(PlayerData, guardianSpiritCtx) == 0x140);
+    static_assert(offsetof(PlayerData, samuraiEquipments) == 0x570);
     static_assert(offsetof(PlayerData, activeSlotIndex) == 0x2450);
     static_assert(offsetof(PlayerData, unk14D8) == 0x14D8);
     static_assert(offsetof(PlayerData, unk2448) == 0x2448);
 
     struct PlayerManager {
         uint64_t unk00[0x3A0 >> 3];
-        void* playerData;  // +0x3A0
+        PlayerData* playerData;  // +0x3A0
     };
     static_assert(offsetof(PlayerManager, playerData) == 0x3A0);
 
@@ -465,9 +515,19 @@ struct GameStateManager {
     };
     PlayerManagerWrapper players[4];  // +0x1328
 
+    static PlayerManager* GetPlayerManager(int32_t playerIndex = 0);
+    static PlayerData* GetPlayerData(int32_t playerIndex = 0);
+    static uint64_t GetCurrentHealth(int32_t playerIndex = 0);
+    static uint64_t GetMaxHealthRaw(int32_t playerIndex = 0);
+    static float GetHealthScale(int32_t playerIndex = 0);
+    static float GetCurrentGuardianSpiritProgress(int32_t playerIndex = 0);
+    static int32_t GetMaxGuardianSpiritProgress(int32_t playerIndex = 0);
+    static float GetGuardianSpiritProgressRatio(int32_t playerIndex = 0);
     static void* GetEquipmentSlotBase(int32_t slotIndex, int32_t isNinja);
     static InventoryItemData* GetEquipmentItemFromSlot(int32_t slotIndex, int32_t isNinja);
     static int32_t GetActiveSetIndex();
+
+    // GetNthPlayer_1401469B8
 };
 static_assert(offsetof(GameStateManager, players) == 0x1328);
 
