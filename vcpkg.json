@@ -1,0 +1,10 @@
+{
+  "name": "steam-plugins",
+  "version": "1.0.0",
+  "dependencies": [
+    "spdlog",
+    "fmt",
+    "zlib",
+    "nlohmann-json"
+  ]
+}

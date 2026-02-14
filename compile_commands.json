@@ -1,0 +1,112 @@
+[
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\AntiCheat",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DAntiCheat_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -ID:\\dev\\nioh3\\plugins\\AntiCheat -I.  -c D:\\dev\\nioh3\\plugins\\AntiCheat\\cCheaterChecker.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\AntiCheat\\cCheaterChecker.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\AntiCheat",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DAntiCheat_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -ID:\\dev\\nioh3\\plugins\\AntiCheat -I.  -c D:\\dev\\nioh3\\plugins\\AntiCheat\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\AntiCheat\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\AntiReport",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DAntiReport_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\AntiReport\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\AntiReport\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\BundleDLCUnlocker",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DBundleDLCUnlocker_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\BundleDLCUnlocker\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\BundleDLCUnlocker\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\DisableNPC02",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DDisableNPC02_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\DisableNPC02\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\DisableNPC02\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\DrawWeaponInRestArea",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DDrawWeaponInRestArea_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\DrawWeaponInRestArea\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\DrawWeaponInRestArea\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\EventRewardUnlocker",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DEventRewardUnlocker_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\EventRewardUnlocker\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\EventRewardUnlocker\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\FireAlma",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DFireAlma_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\FireAlma\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\FireAlma\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\plugins\\TransmogUnlocker",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\" -DTransmogUnlocker_EXPORTS  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\include\\sol2\\single\\include -ID:\\dev\\nioh3\\common\\include\\common -I.  -c D:\\dev\\nioh3\\plugins\\TransmogUnlocker\\main.cpp",
+    "file": "D:\\dev\\nioh3\\plugins\\TransmogUnlocker\\main.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\BranchTrampoline.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\BranchTrampoline.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\CommonUtils.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\CommonUtils.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\FileUtils.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\FileUtils.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\GameType.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\GameType.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\HookUtils.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\HookUtils.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\LightningScanner\\Avx2.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\LightningScanner\\Avx2.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\LightningScanner\\CpuInfo.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\LightningScanner\\CpuInfo.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\LightningScanner\\Scalar.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\LightningScanner\\Scalar.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\LightningScanner\\Sse42.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\LightningScanner\\Sse42.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\LogUtils.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\LogUtils.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\Relocation.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\Relocation.cpp"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\Zydis.c",
+    "file": "D:\\dev\\nioh3\\common\\src\\Zydis.c"
+  },
+  {
+    "directory": "D:\\dev\\nioh3\\build\\common",
+    "command": "clangd.exe -std=c++23 -DWIN32 -D_WINDOWS -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DSPDLOG_FMT_EXTERNAL -DCMAKE_INTDIR=\"Release\"  -ID:\\dev\\nioh3\\common\\include -ID:\\dev\\nioh3\\build\\vcpkg_installed\\x64-windows-static\\include -ID:\\dev\\nioh3\\common\\include\\lua -ID:\\dev\\nioh3\\common\\src -I.  -c D:\\dev\\nioh3\\common\\src\\safetyhook.cpp",
+    "file": "D:\\dev\\nioh3\\common\\src\\safetyhook.cpp"
+  }
+]
