@@ -13,6 +13,7 @@
 #include <string>
 #include <algorithm>
 #include <cctype>
+#include <cwctype>
 #include <cstdio>
 #include <cstring>
 #include <cstddef>
@@ -237,20 +238,44 @@ namespace {
 		std::uint32_t fileHash = 0;
 		fs::path filePath{};
 		bool fromModsRoot = false;
-		std::string parentSortKey{};
-		std::string fileSortKey{};
+		std::wstring parentSortKey{};
+		std::wstring fileSortKey{};
 	};
 
-	std::string ToLowerAscii(std::string a_text) {
-		std::transform(a_text.begin(), a_text.end(), a_text.begin(),
-			[](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-		return a_text;
+	int CompareWideOrdinal(const std::wstring& a_lhs, const std::wstring& a_rhs, bool a_ignoreCase) {
+		const int result = CompareStringOrdinal(
+			a_lhs.c_str(), -1, a_rhs.c_str(), -1, a_ignoreCase ? TRUE : FALSE);
+		if (result == CSTR_LESS_THAN) {
+			return -1;
+		}
+		if (result == CSTR_GREATER_THAN) {
+			return 1;
+		}
+		if (result == CSTR_EQUAL) {
+			return 0;
+		}
+
+		if (a_lhs < a_rhs) {
+			return -1;
+		}
+		if (a_lhs > a_rhs) {
+			return 1;
+		}
+		return 0;
+	}
+
+	bool LessWideNoCaseStable(const std::wstring& a_lhs, const std::wstring& a_rhs) {
+		const int ci = CompareWideOrdinal(a_lhs, a_rhs, true);
+		if (ci != 0) {
+			return ci < 0;
+		}
+		return CompareWideOrdinal(a_lhs, a_rhs, false) < 0;
 	}
 
 	bool TryParseAssetHashFromFileName(const fs::path& a_path, std::uint32_t& a_outHash) {
-		std::string fileName = a_path.filename().string();
-		const auto dotPos = fileName.find('.');
-		if (dotPos != std::string::npos) {
+		std::wstring fileName = a_path.filename().wstring();
+		const auto dotPos = fileName.find(L'.');
+		if (dotPos != std::wstring::npos) {
 			fileName = fileName.substr(0, dotPos);
 		}
 
@@ -258,8 +283,8 @@ namespace {
 			return false;
 		}
 
-		std::string hexText;
-		if (fileName.size() == 10 && fileName[0] == '0' && (fileName[1] == 'x' || fileName[1] == 'X')) {
+		std::wstring hexText;
+		if (fileName.size() == 10 && fileName[0] == L'0' && (fileName[1] == L'x' || fileName[1] == L'X')) {
 			hexText = fileName.substr(2);
 		}
 		else if (fileName.size() == 8) {
@@ -270,7 +295,7 @@ namespace {
 		}
 
 		if (!std::all_of(hexText.begin(), hexText.end(),
-			[](unsigned char ch) { return std::isxdigit(ch) != 0; })) {
+			[](wchar_t ch) { return std::iswxdigit(ch) != 0; })) {
 			return false;
 		}
 
@@ -287,7 +312,7 @@ namespace {
 		}
 	}
 
-	void CollectModAssetCandidates(const fs::path& a_dir, bool a_fromModsRoot, const std::string& a_parentSortKey, std::vector<ModAssetCandidate>& a_outCandidates) {
+	void CollectModAssetCandidates(const fs::path& a_dir, bool a_fromModsRoot, const std::wstring& a_parentSortKey, std::vector<ModAssetCandidate>& a_outCandidates) {
 		std::error_code ec;
 		if (!fs::exists(a_dir, ec) || !fs::is_directory(a_dir, ec)) {
 			return;
@@ -314,7 +339,7 @@ namespace {
 			candidate.filePath = entry.path();
 			candidate.fromModsRoot = a_fromModsRoot;
 			candidate.parentSortKey = a_parentSortKey;
-			candidate.fileSortKey = ToLowerAscii(entry.path().filename().string());
+			candidate.fileSortKey = entry.path().filename().wstring();
 			a_outCandidates.emplace_back(std::move(candidate));
 		}
 	}
@@ -330,9 +355,9 @@ namespace {
 		}
 
 		std::vector<ModAssetCandidate> candidates;
-		CollectModAssetCandidates(modsDir, true, "", candidates);
+		CollectModAssetCandidates(modsDir, true, L"", candidates);
 
-		std::vector<std::pair<std::string, fs::path>> firstLevelModDirs;
+		std::vector<std::pair<std::wstring, fs::path>> firstLevelModDirs;
 		for (const auto& entry : fs::directory_iterator(modsDir, fs::directory_options::skip_permission_denied, ec)) {
 			if (ec) {
 				_MESSAGE("Failed to iterate mods root: %s", modsDir.string().c_str());
@@ -344,16 +369,17 @@ namespace {
 				continue;
 			}
 
-			const auto folderName = entry.path().filename().string();
-			firstLevelModDirs.emplace_back(ToLowerAscii(folderName), entry.path());
+			const auto folderName = entry.path().filename().wstring();
+			firstLevelModDirs.emplace_back(folderName, entry.path());
 		}
 
 		std::sort(firstLevelModDirs.begin(), firstLevelModDirs.end(),
 			[](const auto& lhs, const auto& rhs) {
-				if (lhs.first != rhs.first) {
-					return lhs.first < rhs.first;
+				const int nameCmp = CompareWideOrdinal(lhs.first, rhs.first, true);
+				if (nameCmp != 0) {
+					return nameCmp < 0;
 				}
-				return lhs.second.filename().string() < rhs.second.filename().string();
+				return LessWideNoCaseStable(lhs.second.filename().wstring(), rhs.second.filename().wstring());
 			});
 
 		for (const auto& [folderSortKey, folderPath] : firstLevelModDirs) {
@@ -365,13 +391,17 @@ namespace {
 				if (lhs.fromModsRoot != rhs.fromModsRoot) {
 					return lhs.fromModsRoot && !rhs.fromModsRoot;
 				}
-				if (!lhs.fromModsRoot && lhs.parentSortKey != rhs.parentSortKey) {
-					return lhs.parentSortKey < rhs.parentSortKey;
+				if (!lhs.fromModsRoot) {
+					const int parentCmp = CompareWideOrdinal(lhs.parentSortKey, rhs.parentSortKey, true);
+					if (parentCmp != 0) {
+						return parentCmp < 0;
+					}
 				}
-				if (lhs.fileSortKey != rhs.fileSortKey) {
-					return lhs.fileSortKey < rhs.fileSortKey;
+				const int fileNameCmp = CompareWideOrdinal(lhs.fileSortKey, rhs.fileSortKey, true);
+				if (fileNameCmp != 0) {
+					return fileNameCmp < 0;
 				}
-				return lhs.filePath.string() < rhs.filePath.string();
+				return LessWideNoCaseStable(lhs.filePath.wstring(), rhs.filePath.wstring());
 			});
 
 		std::size_t conflictCount = 0;
