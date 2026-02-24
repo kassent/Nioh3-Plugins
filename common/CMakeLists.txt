@@ -5,20 +5,20 @@ file(GLOB_RECURSE COMMON_SOURCES
     "src/LightningScanner/*.cpp"
     "include/*.h"
     "include/*.hpp"
-    "include/reframework/*.h"
-    "include/reframework/*.hpp"
-
 )
 
-
+file(GLOB_RECURSE BINARY_IO_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/binary_io/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/binary_io/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/binary_io/*.cpp
+)
 # 创建静态库
-add_library(common_lib STATIC ${COMMON_SOURCES})
+add_library(common_lib STATIC ${COMMON_SOURCES} ${BINARY_IO_FILES})
 
 # 设置包含目录
 target_include_directories(common_lib
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/lua
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -38,6 +38,7 @@ if(MSVC)
         $<$<CONFIG:Release>:/MT> 
         $<$<CONFIG:Debug>:/MTd>
     )
+    source_group("BinaryIO" FILES ${BINARY_IO_FILES})
 endif()
 
 # 导出所有符号
