@@ -1,5 +1,5 @@
-﻿#include "Relocation.h"
-#define NOMINMAX
+﻿#define NOMINMAX
+#include "Relocation.h"
 #include <Windows.h>
 #include <cstdint>
 #include <PluginAPI.h>
@@ -8,18 +8,16 @@
 #include <HookUtils.h>
 #include <BranchTrampoline.h>
 #include <GameType.h>
-#include <fstream>
 #include <unordered_map>
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <cstddef>
-#include <cstdint>
+#include <limits>
 #include <filesystem>
-#include <sstream>
-#include <iomanip>
 #include <memory>
 #include "binary_io/binary_io.hpp"
 
@@ -30,7 +28,7 @@ namespace fs = std::filesystem;
 #define PLUGIN_VERSION_PATCH 0
 
 
-
+// #define _DEBUG
 
 namespace {
 
@@ -122,14 +120,12 @@ namespace {
 		}
 
 		void Close() override {
-			_MESSAGE("LooseModFileReader::Close");
 			if (m_stream.is_open()) {
 				m_stream.close();
 			}
 		}
 
 		std::int64_t Skip(std::int64_t a_deltaBytes) override {
-			_MESSAGE("LooseModFileReader::Skip deltaBytes: %lld", a_deltaBytes);
 			if (!m_stream.is_open()) {
 				return 0;
 			}
@@ -143,7 +139,6 @@ namespace {
 		}
 
 		std::uint64_t ReadByte(std::uint8_t* a_outByte) override {
-			_MESSAGE("LooseModFileReader::ReadByte");
 			if (a_outByte == nullptr) {
 				return 0;
 			}
@@ -151,7 +146,6 @@ namespace {
 		}
 
 		std::uint64_t Read(void* a_dst, std::uint64_t a_dstOffset, std::uint64_t a_size) override {
-			_MESSAGE("LooseModFileReader::Read size: %lld", a_size);
 			if (!m_stream.is_open() || a_dst == nullptr || a_size == 0) {
 				return 0;
 			}
@@ -237,6 +231,162 @@ namespace {
 
 	fs::path g_gameRootDir;
 	fs::path g_pluginsDir;
+	std::unordered_map<std::uint32_t, fs::path> g_modAssetOverrides;
+
+	struct ModAssetCandidate {
+		std::uint32_t fileHash = 0;
+		fs::path filePath{};
+		bool fromModsRoot = false;
+		std::string parentSortKey{};
+		std::string fileSortKey{};
+	};
+
+	std::string ToLowerAscii(std::string a_text) {
+		std::transform(a_text.begin(), a_text.end(), a_text.begin(),
+			[](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+		return a_text;
+	}
+
+	bool TryParseAssetHashFromFileName(const fs::path& a_path, std::uint32_t& a_outHash) {
+		std::string fileName = a_path.filename().string();
+		const auto dotPos = fileName.find('.');
+		if (dotPos != std::string::npos) {
+			fileName = fileName.substr(0, dotPos);
+		}
+
+		if (fileName.empty()) {
+			return false;
+		}
+
+		std::string hexText;
+		if (fileName.size() == 10 && fileName[0] == '0' && (fileName[1] == 'x' || fileName[1] == 'X')) {
+			hexText = fileName.substr(2);
+		}
+		else if (fileName.size() == 8) {
+			hexText = fileName;
+		}
+		else {
+			return false;
+		}
+
+		if (!std::all_of(hexText.begin(), hexText.end(),
+			[](unsigned char ch) { return std::isxdigit(ch) != 0; })) {
+			return false;
+		}
+
+		try {
+			const auto value = std::stoull(hexText, nullptr, 16);
+			if (value > std::numeric_limits<std::uint32_t>::max()) {
+				return false;
+			}
+			a_outHash = static_cast<std::uint32_t>(value);
+			return true;
+		}
+		catch (...) {
+			return false;
+		}
+	}
+
+	void CollectModAssetCandidates(const fs::path& a_dir, bool a_fromModsRoot, const std::string& a_parentSortKey, std::vector<ModAssetCandidate>& a_outCandidates) {
+		std::error_code ec;
+		if (!fs::exists(a_dir, ec) || !fs::is_directory(a_dir, ec)) {
+			return;
+		}
+
+		for (const auto& entry : fs::directory_iterator(a_dir, fs::directory_options::skip_permission_denied, ec)) {
+			if (ec) {
+				_MESSAGE("Failed to iterate directory: %s", a_dir.string().c_str());
+				break;
+			}
+
+			std::error_code fileEc;
+			if (!entry.is_regular_file(fileEc)) {
+				continue;
+			}
+
+			std::uint32_t fileHash = 0;
+			if (!TryParseAssetHashFromFileName(entry.path(), fileHash)) {
+				continue;
+			}
+
+			ModAssetCandidate candidate{};
+			candidate.fileHash = fileHash;
+			candidate.filePath = entry.path();
+			candidate.fromModsRoot = a_fromModsRoot;
+			candidate.parentSortKey = a_parentSortKey;
+			candidate.fileSortKey = ToLowerAscii(entry.path().filename().string());
+			a_outCandidates.emplace_back(std::move(candidate));
+		}
+	}
+
+	void BuildModAssetOverrideIndex() {
+		g_modAssetOverrides.clear();
+
+		const fs::path modsDir = g_gameRootDir / "mods";
+		std::error_code ec;
+		if (!fs::exists(modsDir, ec) || !fs::is_directory(modsDir, ec)) {
+			_MESSAGE("Mods directory not found: %s", modsDir.string().c_str());
+			return;
+		}
+
+		std::vector<ModAssetCandidate> candidates;
+		CollectModAssetCandidates(modsDir, true, "", candidates);
+
+		std::vector<std::pair<std::string, fs::path>> firstLevelModDirs;
+		for (const auto& entry : fs::directory_iterator(modsDir, fs::directory_options::skip_permission_denied, ec)) {
+			if (ec) {
+				_MESSAGE("Failed to iterate mods root: %s", modsDir.string().c_str());
+				break;
+			}
+
+			std::error_code dirEc;
+			if (!entry.is_directory(dirEc)) {
+				continue;
+			}
+
+			const auto folderName = entry.path().filename().string();
+			firstLevelModDirs.emplace_back(ToLowerAscii(folderName), entry.path());
+		}
+
+		std::sort(firstLevelModDirs.begin(), firstLevelModDirs.end(),
+			[](const auto& lhs, const auto& rhs) {
+				if (lhs.first != rhs.first) {
+					return lhs.first < rhs.first;
+				}
+				return lhs.second.filename().string() < rhs.second.filename().string();
+			});
+
+		for (const auto& [folderSortKey, folderPath] : firstLevelModDirs) {
+			CollectModAssetCandidates(folderPath, false, folderSortKey, candidates);
+		}
+
+		std::sort(candidates.begin(), candidates.end(),
+			[](const ModAssetCandidate& lhs, const ModAssetCandidate& rhs) {
+				if (lhs.fromModsRoot != rhs.fromModsRoot) {
+					return lhs.fromModsRoot && !rhs.fromModsRoot;
+				}
+				if (!lhs.fromModsRoot && lhs.parentSortKey != rhs.parentSortKey) {
+					return lhs.parentSortKey < rhs.parentSortKey;
+				}
+				if (lhs.fileSortKey != rhs.fileSortKey) {
+					return lhs.fileSortKey < rhs.fileSortKey;
+				}
+				return lhs.filePath.string() < rhs.filePath.string();
+			});
+
+		std::size_t conflictCount = 0;
+		for (const auto& candidate : candidates) {
+			const auto [it, inserted] = g_modAssetOverrides.emplace(candidate.fileHash, candidate.filePath);
+			if (!inserted) {
+				++conflictCount;
+				_MESSAGE("Mod override conflict for 0x%08X: keep=%s, skip=%s",
+					candidate.fileHash, it->second.string().c_str(), candidate.filePath.string().c_str());
+			}
+		}
+
+		_MESSAGE("Mod override index built. candidates=%zu, unique=%zu, conflicts=%zu",
+			candidates.size(), g_modAssetOverrides.size(), conflictCount);
+	}
 }
 
 extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginInitializeParam* param) {
@@ -245,6 +395,7 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
 	_MESSAGE("Plugin dir: %s", param->plugins_dir);
 	g_gameRootDir = param->game_root_dir;
 	g_pluginsDir = param->plugins_dir;
+	BuildModAssetOverrideIndex();
 
 	using FnLoadAssetFromFile =
 		bool (*)(uintptr_t, uintptr_t, void*, void*, void*, uintptr_t,
@@ -284,59 +435,75 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
 			IAssetStreamReader* a_assetStreamReader, uintptr_t a_payloadDataOffset,
 			uintptr_t a_payloadSize, void* a_decompressor, void* a_handlerUserCtx,
 			bool a_requireDecompress) -> bool {
-				if (a_assetManager && a_targetAsset && a_rdbEntryDesc) {
-					auto fileId = a_rdbEntryDesc->fileKtid;
-					auto typeId = a_rdbEntryDesc->typeInfoKtid;
-					auto *assetHandler = GetAssetHandlerFromType(a_assetManager, typeId);
-				
-					if (fileId != 0xFFFFFFFF) {
-						if (fileId == 0xB9C7FD46) {
-							std::string typeName = assetHandler ? assetHandler->GetTypeName() : "Unknown";
-							_MESSAGE("Load asset with hash: 0x%08X | Type: %s (0x%08X)", fileId, typeName.c_str(), typeId);
-							_MESSAGE("fileId: %08X", fileId);
-							_MESSAGE("typeId: %08X", typeId);
-							_MESSAGE("rdbEntryDesc: %p", a_rdbEntryDesc);
-							_MESSAGE("magic: %s", a_rdbEntryDesc->GetMagic().c_str());
-							_MESSAGE("version: %s", a_rdbEntryDesc->GetVersion().c_str());
-							_MESSAGE("sizeInContainer: %08X", a_rdbEntryDesc->sizeInContainer);
-							_MESSAGE("compressedSize: %08X", a_rdbEntryDesc->compressedSize);
-							_MESSAGE("uncompressedSize: %08X", a_rdbEntryDesc->fileSize);
-							_MESSAGE("fileKtid: %08X", a_rdbEntryDesc->fileKtid);
-							_MESSAGE("typeInfoKtid: %08X", a_rdbEntryDesc->typeInfoKtid);
-							_MESSAGE("flags: %d", a_rdbEntryDesc->flags >> 20 & 0x3F);
-							_MESSAGE("f2C: %08X", a_rdbEntryDesc->f2C);
-							_MESSAGE("paramCount: %08X", a_rdbEntryDesc->paramCount);
-							_MESSAGE("f34: %08X", a_rdbEntryDesc->f34);
-							_MESSAGE("paramDataBlock: %p", a_rdbEntryDesc->paramDataBlock);
-							// _MESSAGE("Load asset with hash: 0x%08X | Type: (0x%08X)",
-							// 	realHash, resType);
-							fs::path filePath = g_gameRootDir / "mods" / "0xB9C7FD46.g1m";
-							_MESSAGE("filePath: %s", filePath.string().c_str());
-							if (fs::exists(filePath)) {
-								auto oldFlags = a_rdbEntryDesc->flags;
-								a_rdbEntryDesc->flags = oldFlags | 0x100000;
-								_MESSAGE("Load asset from: %s", filePath.string().c_str());
-								auto reader = std::make_unique<LooseModFileReader>(filePath);
 
-								auto ret =
-									original(a_param1, a_param2, a_assetManager, a_mountCallerCtx, a_mountCallbackCtx,
-										a_param6, a_targetAsset, a_rdbEntryDesc,
-										reader.get(), a_payloadDataOffset, a_payloadSize,
-										nullptr, a_handlerUserCtx, false);
-
-								_MESSAGE("Load asset from: %s, ret: %d",
-									filePath.string().c_str(), ret);
-								return ret;
-							}
-						}
+				do {
+					if (!a_assetManager || !a_targetAsset || !a_rdbEntryDesc) {
+						break;
 					}
-				}
+
+					auto fileId = a_rdbEntryDesc->fileKtid;
+					if (fileId == 0xFFFFFFFF) {
+						break;
+					}
+
+					auto typeId = a_rdbEntryDesc->typeInfoKtid;
+					// auto *assetHandler = GetAssetHandlerFromType(a_assetManager, typeId);
+					// std::string typeName = assetHandler ? assetHandler->GetTypeName() : "Unknown";
+					// _MESSAGE("Load asset with hash: 0x%08X | Type: %s (0x%08X)", fileId, typeName.c_str(), typeId);
+					// _MESSAGE("fileId: %08X", fileId);
+					// _MESSAGE("typeId: %08X", typeId);
+					// _MESSAGE("rdbEntryDesc: %p", a_rdbEntryDesc);
+					// _MESSAGE("magic: %s", a_rdbEntryDesc->GetMagic().c_str());
+					// _MESSAGE("version: %s", a_rdbEntryDesc->GetVersion().c_str());
+					// _MESSAGE("sizeInContainer: %08X", a_rdbEntryDesc->sizeInContainer);
+					// _MESSAGE("compressedSize: %08X", a_rdbEntryDesc->compressedSize);
+					// _MESSAGE("uncompressedSize: %08X", a_rdbEntryDesc->fileSize);
+					// _MESSAGE("fileKtid: %08X", a_rdbEntryDesc->fileKtid);
+					// _MESSAGE("typeInfoKtid: %08X", a_rdbEntryDesc->typeInfoKtid);
+					// _MESSAGE("flags: %d", a_rdbEntryDesc->flags >> 20 & 0x3F);
+					// _MESSAGE("f2C: %08X", a_rdbEntryDesc->f2C);
+					// _MESSAGE("paramCount: %08X", a_rdbEntryDesc->paramCount);
+					// _MESSAGE("f34: %08X", a_rdbEntryDesc->f34);
+					// _MESSAGE("paramDataBlock: %p", a_rdbEntryDesc->paramDataBlock);
+
+					auto it = g_modAssetOverrides.find(fileId);
+					if (it == g_modAssetOverrides.end()) {
+						break;
+					}
+
+					const auto& filePath = it->second;
+					std::error_code fsEc;
+					if (!fs::exists(filePath, fsEc) || !fs::is_regular_file(filePath, fsEc)) {
+						break;
+					}
+
+					auto reader = std::make_unique<LooseModFileReader>(filePath);
+					if (reader->IsOpen()) {
+						const auto oldFlags = a_rdbEntryDesc->flags;
+						a_rdbEntryDesc->flags = oldFlags | 0x100000;
+						auto *assetHandler = GetAssetHandlerFromType(a_assetManager, typeId);
+						std::string typeName = assetHandler ? assetHandler->GetTypeName() : "Unknown";
+						_MESSAGE("Load mod asset: 0x%08X | Type: %s (0x%08X) | %s",
+							fileId, typeName.c_str(), typeId, filePath.string().c_str());
+						const auto ret =
+							original(a_param1, a_param2, a_assetManager, a_mountCallerCtx, a_mountCallbackCtx,
+								a_param6, a_targetAsset, a_rdbEntryDesc,
+								reader.get(), a_payloadDataOffset, a_payloadSize,
+								nullptr, a_handlerUserCtx, false);
+						a_rdbEntryDesc->flags = oldFlags;
+						return ret;
+					}
+					_MESSAGE("Failed to open mod asset file: %s", filePath.string().c_str());
+					
+				} while (false);
+
 				return original(a_param1, a_param2, a_assetManager, a_mountCallerCtx, a_mountCallbackCtx,
 					a_param6, a_targetAsset, a_rdbEntryDesc, a_assetStreamReader,
 					a_payloadDataOffset, a_payloadSize, a_decompressor, a_handlerUserCtx,
 					a_requireDecompress);
 		});
 
+#ifdef _DEBUG
 	using FnRegisterAssetHandler = bool (*)(void*, uint32_t, IBaseGameAssetHandler*);
 	auto RegisterAssetHandler = (FnRegisterAssetHandler)HookUtils::ScanIDAPattern(
 		"E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 83 65 ? 00 48 8D 15", 0, 1, 5);
@@ -367,8 +534,8 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
 				}
 
 				return original(a_assetManager, a_assetHash, a_assetHandler);
-		});
-
+	});
+#endif
 	return true;
 }
 
