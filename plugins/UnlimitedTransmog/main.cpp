@@ -10,8 +10,8 @@
 
 #define PLUGIN_NAME "UnlimitedTransmog"
 #define PLUGIN_VERSION_MAJOR 1
-#define PLUGIN_VERSION_MINOR 4
-#define PLUGIN_VERSION_PATCH 0
+#define PLUGIN_VERSION_MINOR 0
+#define PLUGIN_VERSION_PATCH 3
 
 namespace {
     struct UserConfig {
@@ -114,48 +114,79 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
     _MESSAGE("Game version: %s", param->game_version_string);
     _MESSAGE("Plugin dir: %s", param->plugins_dir);
 
-    RELOC_MEMBER_FN(ItemDataManager, GetItemData, "E8 ? ? ? ? 45 33 C0 48 85 C0 74 ? 48 8B 87", 0, 1, 5);
-    RELOC_GLOBAL_VAL(GetLocalizedString, "E8 ? ? ? ? 33 F6 48 C7 45 ? ? ? ? ? 48 8D 1D", 0, 1, 5);
-    RELOC_GLOBAL_VAL(g_resManager, "48 8B 05 ? ? ? ? 41 8B D7 48 8B 98", 0, 3, 7);
+    // RELOC_MEMBER_FN(ItemDataManager, GetItemData, "E8 ? ? ? ? 45 33 C0 48 85 C0 74 ? 48 8B 87", 0, 1, 5);
+    // RELOC_GLOBAL_VAL(GetLocalizedString, "E8 ? ? ? ? 33 F6 48 C7 45 ? ? ? ? ? 48 8D 1D", 0, 1, 5);
+    // RELOC_GLOBAL_VAL(g_resManager, "48 8B 05 ? ? ? ? 41 8B D7 48 8B 98", 0, 3, 7);
 
     auto config = LoadUserConfig(param);
 
-    if (config.enableUnlockAllTransmog) {
-        auto patchAddr1 = HookUtils::ScanIDAPattern("E8 ? ? ? ? 84 C0 74 ? 45 8B C7 49 8B D3");
-        if (patchAddr1) {
-            _MESSAGE("Found addr for equipment unlock check: %p", patchAddr1);
-            static auto isItemUnlockedMidHook = safetyhook::create_mid(patchAddr1 + 5, [](SafetyHookContext& ctx) {
-                auto itemId = static_cast<uint16_t>(ctx.r13);
-                auto *itemData = (*g_resManager)->itemData->GetItemData(itemId);
-                ctx.rax = !itemData || itemData->GetName().empty() || GetItemDisplayType(itemData) == -1 ? 0 : 1;
-            });
-        } else {
-            _MESSAGE("patchAddr1 not found.");
-        }
-    } else {
-        _MESSAGE("Unlock-all-equipment disabled by config.");
+    auto patchAddr1 = HookUtils::ScanIDAPattern("E8 ? ? ? ? 84 C0 74 ? 45 8B ? 49 8B D3");
+    if (!patchAddr1) {
+        _MESSAGE("patchAddr1 not found.");
+        return true;
     }
 
     if (config.enableSamuraiNinjaSharedTransmog) {
-        uint8_t codes[] = {0xB0, 0x01, 0x90, 0x90, 0x90};
-        auto patchAddr2 = HookUtils::ScanIDAPattern("E8 ? ? ? ? 84 C0 74 ? 45 0F B7 C5");
-        if (patchAddr2) {
-            _MESSAGE("Found addr for samurai-ninja shared-transmog check: %p", patchAddr2);
-            HookUtils::SafeWriteBuf(patchAddr2, codes, sizeof(codes));
-        } else {
+        auto patchAddr2 = HookUtils::LookupFunctionPattern((void*)patchAddr1,"45 8B C5 49 8B D3", 0x100);
+        if (!patchAddr2) {
             _MESSAGE("patchAddr2 not found.");
+            return true;
         }
+        patchAddr2 += 6;
+
+        using FnFilterItemByType = bool(*)(void*, ItemData* item, int32_t itemType);
+        static auto filterItemByTypeOriginal = (FnFilterItemByType)HookUtils::ReadOffsetData(patchAddr2, 1, 5);
+
+        uint8_t nops[] = {0x90, 0x90, 0x90, 0x90, 0x90};
+        HookUtils::SafeWriteBuf(patchAddr2, nops, sizeof(nops));
+
+        auto patchAddr3 = HookUtils::LookupFunctionPattern((void*)patchAddr2,"E8 ? ? ? ? 84 C0 74 ? 45 0F B7 C4", 0x100);
+        if (!patchAddr3) {
+            _MESSAGE("patchAddr3 not found.");
+            return true;
+        }
+        uint8_t codes[] = {0xB0, 0x01, 0x90, 0x90, 0x90};
+        _MESSAGE("Found addr for samurai-ninja shared-transmog check: %p", patchAddr3);
+        HookUtils::SafeWriteBuf(patchAddr3, codes, sizeof(codes));
+
+
+        static auto filterItemByTypeMidHook = safetyhook::create_mid(patchAddr2, [](SafetyHookContext& ctx) {
+            auto itemType = static_cast<uint32_t>(ctx.r8);
+            auto *itemData = (ItemData*)ctx.rdx;
+            auto result = filterItemByTypeOriginal(nullptr, itemData, itemType);
+            if (!result && itemData && itemData->category == ITEM_CATEGORY_WEAPON && itemType < 4) {
+                if (itemType == 0) result = filterItemByTypeOriginal(nullptr, itemData, 1);
+                if (itemType == 1) result = filterItemByTypeOriginal(nullptr, itemData, 0);
+                if (itemType == 2) result = filterItemByTypeOriginal(nullptr, itemData, 3);
+                if (itemType == 3) result = filterItemByTypeOriginal(nullptr, itemData, 2);
+            }
+            ctx.rax = result;  
+        });
     } else {
         _MESSAGE("Samurai-ninja shared-transmog disabled by config.");
     }
 
+    if (config.enableUnlockAllTransmog) {
+        _MESSAGE("Found addr for equipment unlock check: %p", patchAddr1);
+        static auto isItemUnlockedMidHook = safetyhook::create_mid(patchAddr1 + 5, [](SafetyHookContext& ctx) {
+            auto itemId = static_cast<uint16_t>(ctx.r12);
+            auto *itemData = (*g_resManager)->itemData->GetItemData(itemId);
+            ctx.rax = !itemData || itemData->GetName().empty() || GetItemDisplayType(itemData) == -1 ? 0 : 1;    
+        });
+    } else {
+        _MESSAGE("Unlock-all-equipment disabled by config.");
+    }
+/*
+    case 0:  return 6409U; 太刀
+    case 1:  return 24575U; 打刀
+    case 2:  return 28275U; 双刀
+    case 3:  return 21589U; 忍双刀
+*/
     return true;
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
     if (reason == DLL_PROCESS_ATTACH) {
-        initLogger(PLUGIN_NAME);
-        _MESSAGE("===============================================================");
         _MESSAGE("Initializing plugin: %s, version: %d.%d.%d", PLUGIN_NAME, PLUGIN_VERSION_MAJOR, PLUGIN_VERSION_MINOR, PLUGIN_VERSION_PATCH);
         if (!g_branchTrampoline.Create(160)) {
             _MESSAGE("couldn't create branch trampoline. this is fatal. skipping remainder of init process.");

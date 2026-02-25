@@ -1,4 +1,6 @@
 #include "Relocation.h"
+#include "HookUtils.h"
+#include "LogUtils.h"
 #include <windows.h>
 
 // the goal of this file is to support pointers in to a relocated binary with as little runtime overhead, code bloat, and hassle as possible
@@ -28,4 +30,23 @@ uintptr_t RelocationManager::s_baseAddr = 0;
 RelocationManager::RelocationManager()
 {
 	s_baseAddr = reinterpret_cast<uintptr_t>(GetModuleHandleA(NULL));
+}
+
+std::uintptr_t REL::Pattern::address() const {
+  auto expectedAddr = _offset.address();
+  auto actualAddr = HookUtils::ScanIDAPattern(_signature, _dstOffset,
+                                              _dataOffset, _instructionLength);
+  if (actualAddr == 0) {
+    _MESSAGE("Pattern not found: %s dstOffset: %d dataOffset: %d "
+             "instructionLength: %d",
+             _signature.data(), _dstOffset, _dataOffset, _instructionLength);
+    return expectedAddr;
+  }
+  if (actualAddr != expectedAddr) {
+	uint32_t vanillaOffset = static_cast<uint32_t>(expectedAddr - RelocationManager::s_baseAddr);
+	uint32_t updatedOffset = static_cast<uint32_t>(actualAddr - RelocationManager::s_baseAddr);
+    _MESSAGE("Found updated address, new: 0x%08X, old: 0x%08X", updatedOffset, vanillaOffset);
+	return actualAddr;
+  }
+  return actualAddr;
 }

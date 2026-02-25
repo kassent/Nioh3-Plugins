@@ -1,4 +1,4 @@
-#include "LooseModFileReader.h"
+#include "ModFileReader.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -9,15 +9,15 @@ namespace fs = std::filesystem;
 
 namespace LooseFileLoader {
 
-LooseModFileReader::LooseModFileReader(fs::path filePath) {
+ModFileReader::ModFileReader(fs::path filePath) {
     Open(std::move(filePath));
 }
 
-LooseModFileReader::~LooseModFileReader() {
+ModFileReader::~ModFileReader() {
     Close();
 }
 
-bool LooseModFileReader::Open(fs::path filePath) {
+bool ModFileReader::Open(fs::path filePath) {
     if (stream_.is_open()) {
         Close();
     }
@@ -37,13 +37,13 @@ bool LooseModFileReader::Open(fs::path filePath) {
     return stream_.is_open();
 }
 
-void LooseModFileReader::Close() {
+void ModFileReader::Close() {
     if (stream_.is_open()) {
         stream_.close();
     }
 }
 
-std::int64_t LooseModFileReader::Skip(std::int64_t deltaBytes) {
+std::int64_t ModFileReader::Skip(std::int64_t deltaBytes) {
     if (!stream_.is_open()) {
         return 0;
     }
@@ -55,14 +55,14 @@ std::int64_t LooseModFileReader::Skip(std::int64_t deltaBytes) {
     return target - current;
 }
 
-std::uint64_t LooseModFileReader::ReadByte(std::uint8_t* outByte) {
+std::uint64_t ModFileReader::ReadByte(std::uint8_t* outByte) {
     if (outByte == nullptr) {
         return 0;
     }
     return Read(outByte, 0, 1);
 }
 
-std::uint64_t LooseModFileReader::Read(void* dst, std::uint64_t dstOffset, std::uint64_t size) {
+std::uint64_t ModFileReader::Read(void* dst, std::uint64_t dstOffset, std::uint64_t size) {
     if (!stream_.is_open() || dst == nullptr || size == 0) {
         return 0;
     }
@@ -84,11 +84,11 @@ std::uint64_t LooseModFileReader::Read(void* dst, std::uint64_t dstOffset, std::
     return (after > before) ? static_cast<std::uint64_t>(after - before) : 0;
 }
 
-std::uint64_t LooseModFileReader::QueryCapability() {
+std::uint64_t ModFileReader::QueryCapability() {
     return 0;
 }
 
-bool LooseModFileReader::IsOpen() const {
+bool ModFileReader::IsOpen() const {
     return stream_.is_open();
 }
 

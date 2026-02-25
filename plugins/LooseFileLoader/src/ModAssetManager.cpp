@@ -1,5 +1,5 @@
 #define NOMINMAX
-#include "ModAssetIndex.h"
+#include "ModAssetManager.h"
 
 #include <Windows.h>
 
@@ -121,7 +121,7 @@ void CollectModAssetCandidates(const fs::path& dir, bool fromModsRoot, const std
 
 }  // namespace
 
-void ModAssetIndex::Build(const fs::path& gameRootDir) {
+void ModAssetManager::Build(const fs::path& gameRootDir) {
     overrides_.clear();
 
     const fs::path modsDir = gameRootDir / "mods";
@@ -192,7 +192,7 @@ void ModAssetIndex::Build(const fs::path& gameRootDir) {
         candidates.size(), overrides_.size(), conflictCount);
 }
 
-std::optional<fs::path> ModAssetIndex::Find(std::uint32_t fileHash) const {
+std::optional<fs::path> ModAssetManager::Find(std::uint32_t fileHash) const {
     const auto it = overrides_.find(fileHash);
     return (it != overrides_.end()) ? std::optional<fs::path>(it->second) : std::nullopt;
 }

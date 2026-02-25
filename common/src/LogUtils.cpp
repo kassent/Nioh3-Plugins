@@ -6,21 +6,23 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 
+#pragma warning(disable: 4073)	// yes this is intentional
+#pragma init_seg(lib)
 
-std::string pluginName;
-std::shared_ptr<spdlog::logger> globalLogger;
-
-void initLogger(const char* a_pluginName) {
-    pluginName = a_pluginName;
-    std::string logFilePath = FileUtils::GetDocumentsDirectory().data() + std::string("\\") + a_pluginName + std::string(".log");
+std::shared_ptr<spdlog::logger> globalLogger = []()->auto {
+    auto exeDir = FileUtils::GetExecutableDirectory();
+    auto logFilePath = exeDir / "logs" / (FileUtils::GetCurrentModuleName() + ".log");
     // Create a file rotating logger with 5 MB size max and 3 rotated files
     auto max_size = 1048576 * 5;
     auto max_files = 1;
-    globalLogger = spdlog::rotating_logger_mt("logger", logFilePath, max_size, max_files);
-    globalLogger->flush_on(spdlog::level::debug);
-    globalLogger->set_level(spdlog::level::info);
-    globalLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%l][%t] %v");
-}
+    auto logger = spdlog::rotating_logger_mt("logger", logFilePath.string(), max_size, max_files);
+    logger->flush_on(spdlog::level::debug);
+    logger->set_level(spdlog::level::info);
+    logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%l][%t] %v");
+    logger->info("===============================================================");
+    return logger;
+}();
+
 
 void _MESSAGE(const char* fmt, ...) {
     if (fmt == nullptr) {

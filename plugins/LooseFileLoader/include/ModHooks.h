@@ -2,7 +2,7 @@
 
 namespace LooseFileLoader {
 
-bool InstallLooseFileLoaderHooks();
+bool InstallHooks();
 
 }  // namespace LooseFileLoader
 

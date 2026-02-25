@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <string_view>
 
 
 class RelocationManager {
@@ -220,6 +221,26 @@ private:
   std::size_t _offset{0};
 };
 
+class Pattern {
+  public:
+    constexpr Pattern() noexcept = delete;
+
+    constexpr Pattern(std::uintptr_t a_offset, std::string_view a_signature,
+                      std::int32_t a_dstOffset = 0,
+                      std::int32_t a_dataOffset = 0,
+                      std::int32_t a_instructionLength = 0) noexcept
+        : _offset(a_offset), _signature(a_signature), _dstOffset(a_dstOffset),
+          _dataOffset(a_dataOffset), _instructionLength(a_instructionLength) {}
+
+  [[nodiscard]] std::uintptr_t address() const;
+  private:
+    Offset _offset; // base address of the pattern
+    std::string_view _signature; // pattern string
+    std::int32_t _dstOffset{0}; // destination offset
+    std::int32_t _dataOffset{0}; // data offset
+    std::int32_t _instructionLength{0}; // instruction length
+};
+
 template <class T> class Relocation {
 public:
   using value_type =
@@ -233,6 +254,8 @@ public:
       : _impl{a_address} {}
 
   explicit Relocation(Offset a_offset) : _impl{a_offset.address()} {}
+
+  explicit Relocation(Pattern a_pattern) : _impl{a_pattern.address()} {}
 
   constexpr Relocation &operator=(std::uintptr_t a_address) noexcept {
     _impl = a_address;
@@ -318,10 +341,33 @@ private:
     return relMem;                                                             \
   }
 
-#define RELOC_MEMBER_FN(className, fnName, ...)                                \
-  className## ::_##fnName##_GetFnPtr() = HookUtils::ScanIDAPattern(__VA_ARGS__);
 
-#define RELOC_GLOBAL_VAL(relValue, ...)                                        \
-  relValue = HookUtils::ScanIDAPattern(__VA_ARGS__);
+#define DEF_MEMBER_FN_REL(fnName, retnType, addr, signature, dstOffset, dataOffset, instructionLength, ...)                             \
+  template <class... Params>                                                   \
+  FORCE_INLINE retnType fnName(Params &&...params) {                           \
+    struct empty_struct {};                                                    \
+    typedef retnType (empty_struct::*_##fnName##_type)(__VA_ARGS__);           \
+    const static uintptr_t address = _##fnName##_GetFnPtr();                   \
+    _##fnName##_type fn = *(_##fnName##_type *)&address;                       \
+    return (reinterpret_cast<empty_struct *>(this)->*fn)(params...);           \
+  }                                                                            \
+  inline static REL::Relocation<uintptr_t> _##fnName {REL::Pattern(addr, signature, dstOffset, dataOffset, instructionLength) }; \
+  static uintptr_t &_##fnName##_GetFnPtr() {                                   \
+    static uintptr_t relMem = _##fnName.address();                             \
+    return relMem;                                                             \
+  }
 
-#define RELOC_RUNTIME_ADDR(...) HookUtils::ScanIDAPattern(__VA_ARGS__)
+#define DEF_MEMBER_FN_REL_CONST(fnName, retnType, addr, signature, dstOffset, dataOffset, instructionLength, ...)                       \
+  template <class... Params>                                                   \
+  FORCE_INLINE retnType fnName(Params &&...params) const {                     \
+    struct empty_struct {};                                                    \
+    typedef retnType (empty_struct::*_##fnName##_type)(__VA_ARGS__) const;     \
+    const static uintptr_t address = _##fnName##_GetFnPtr();                   \
+    _##fnName##_type fn = *(_##fnName##_type *)&address;                       \
+    return (reinterpret_cast<const empty_struct *>(this)->*fn)(params...);     \
+  }                                                                            \
+  inline static REL::Relocation<uintptr_t> _##fnName {REL::Pattern(addr, signature, dstOffset, dataOffset, instructionLength) }; \
+  static uintptr_t &_##fnName##_GetFnPtr() {                                   \
+    static uintptr_t relMem = _##fnName.address();                             \
+    return relMem;                                                             \
+  }

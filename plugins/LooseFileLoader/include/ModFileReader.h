@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AssetRuntimeTypes.h"
+#include "Common.h"
 
 #include <filesystem>
 
@@ -8,11 +8,11 @@
 
 namespace LooseFileLoader {
 
-class LooseModFileReader final : public IAssetStreamReader {
+class ModFileReader final : public IAssetStreamReader {
 public:
-    LooseModFileReader() = delete;
-    explicit LooseModFileReader(std::filesystem::path filePath);
-    ~LooseModFileReader() override;
+    ModFileReader() = delete;
+    explicit ModFileReader(std::filesystem::path filePath);
+    ~ModFileReader() override;
 
     bool Open(std::filesystem::path filePath);
     void Close() override;
