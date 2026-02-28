@@ -7,7 +7,7 @@
 
 #define PLUGIN_NAME "LooseFileLoader"
 #define PLUGIN_VERSION_MAJOR 1
-#define PLUGIN_VERSION_MINOR 0
+#define PLUGIN_VERSION_MINOR 1
 #define PLUGIN_VERSION_PATCH 0
 
 namespace LooseFileLoader {
@@ -15,7 +15,7 @@ namespace LooseFileLoader {
 inline bool g_enableAssetLoadingLog = false;
 
 #pragma pack(push, 1)
-struct RdbRuntimeEntryDesc {
+struct RDBDescriptor {
     char magic[4];        // +0x00, "IDRK" (0x14062BBF8 初始化 + 0x140270A44读取)
     char version[4];      // +0x04
     uint64_t sizeInContainer;    // +0x08, allBlockSize in rdata sectionBytes
@@ -37,7 +37,15 @@ struct RdbRuntimeEntryDesc {
         return std::string(version, 4);
     }
 };
-static_assert(sizeof(RdbRuntimeEntryDesc) == 0x40);
+static_assert(offsetof(RDBDescriptor, magic) == 0x00);
+static_assert(offsetof(RDBDescriptor, version) == 0x04);
+static_assert(offsetof(RDBDescriptor, sizeInContainer) == 0x08);
+static_assert(offsetof(RDBDescriptor, compressedSize) == 0x10);
+static_assert(offsetof(RDBDescriptor, fileSize) == 0x18);
+static_assert(offsetof(RDBDescriptor, fileKtid) == 0x20);
+static_assert(offsetof(RDBDescriptor, typeInfoKtid) == 0x24);
+static_assert(offsetof(RDBDescriptor, flags) == 0x28);
+static_assert(sizeof(RDBDescriptor) == 0x40);
 
 struct GameAsset {
     std::uint32_t stateFlags = 0;      // +0x00 runtime state bits (load/create/pending)
@@ -138,21 +146,68 @@ inline REL::Relocation<GameManager**> g_gameMain(REL::Pattern(0x4566990, "48 8B 
 #pragma pack(pop)
 
 
-class IAssetStreamReader {
+class IFileStreamReader {
 public:
-    virtual ~IAssetStreamReader() = default;
+    virtual ~IFileStreamReader() = default;
     virtual void Close() = 0;
     virtual std::int64_t Skip(std::int64_t deltaBytes) = 0;
     virtual std::uint64_t ReadByte(std::uint8_t* outByte) = 0;
     virtual std::uint64_t Read(void* dst, std::uint64_t dstOffset, std::uint64_t size) = 0;
-    virtual std::uint64_t QueryCapability() = 0;
+    virtual std::uint64_t GetID() const = 0;
 };
+
+
+class AssetReader : public IFileStreamReader {
+public:
+    using ArchiveManager = GameManager::ArchiveManager;
+    ArchiveManager*     archiveManager; // +0x08
+    IFileStreamReader * streamReader;  // +0x10
+    uint64_t            archiveFileHandle; // +0x18
+    uint64_t            archiveFileOffset; // +0x20
+    uint64_t            assetFileSize; // +0x28
+
+    struct ArchiveInfo {
+        uint64_t field00[0x28 >> 3]; // +0x00
+        char     filePath[512]; // +0x28
+    };
+    static_assert(offsetof(ArchiveInfo, filePath) == 0x28);
+
+    DEF_MEMBER_FN_REL_CONST(GetArchiveInfo, bool, 0x05E8C50, "E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 4C 8B 7E", 0, 1, 5, ArchiveInfo * a_archiveInfo);
+};
+static_assert(offsetof(AssetReader, archiveManager) == 0x08);
+static_assert(offsetof(AssetReader, streamReader) == 0x10);
+static_assert(offsetof(AssetReader, archiveFileHandle) == 0x18);
+static_assert(offsetof(AssetReader, archiveFileOffset) == 0x20);
+static_assert(offsetof(AssetReader, assetFileSize) == 0x28);
+static_assert(sizeof(AssetReader) == 0x30);
+
+
+struct AssetLoadingContext {
+    using ArchiveManager = GameManager::ArchiveManager;
+    uint64_t filed00; // +0x00
+    ArchiveManager* archiveManager; // +0x08
+    uint64_t filed10; // +0x10
+    uint64_t filed18; // +0x18
+    uint64_t filed20; // +0x20
+    GameAsset* gameAsset; // +0x28
+    uint64_t archiveFileHandle; // +0x30
+};
+static_assert(offsetof(AssetLoadingContext, archiveManager) == 0x08);
+static_assert(offsetof(AssetLoadingContext, gameAsset) == 0x28);
+static_assert(offsetof(AssetLoadingContext, archiveFileHandle) == 0x30);
 
 class IBaseGameAssetHandler {
 public:
+    struct ObjectField {
+        uint32_t typeFlags = 0;
+        int32_t  nameHash = 0;
+        const char *name = nullptr;
+        const void *format = nullptr;
+    };
+
     virtual void Unk00() = 0;
     virtual void Unk08() = 0;
-    virtual void Unk10() = 0;
+    virtual uint32_t ResolveFields(ObjectField* fieldsOut, uint32_t maxFields, uint32_t startFieldIndex) = 0;
     virtual const char*& GetTypeName(const char*& typeNameOut) const = 0;
     virtual std::uint32_t GetTypeID() = 0;
     virtual void Unk28() = 0;
@@ -172,7 +227,7 @@ public:
     virtual void Unk98() = 0;
     virtual void UnkA0() = 0;
     virtual void UnkA8() = 0;
-    virtual void* Deserialize(void* param1, IAssetStreamReader* reader, void* param3) = 0;
+    virtual void* Deserialize(AssetLoadingContext* loadingContext, IFileStreamReader* reader, void* param3) = 0;
 
     inline std::uintptr_t GetVtableAddr() const {
         return *reinterpret_cast<const std::uintptr_t*>(this) - RelocationManager::s_baseAddr + 0x140000000ull;

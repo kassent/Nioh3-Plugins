@@ -4,7 +4,7 @@
 #include <memory>
 #include <filesystem>
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 #pragma warning(disable: 4073)	// yes this is intentional
 #pragma init_seg(lib)
@@ -15,7 +15,7 @@ std::shared_ptr<spdlog::logger> globalLogger = []()->auto {
     // Create a file rotating logger with 5 MB size max and 3 rotated files
     auto max_size = 1048576 * 5;
     auto max_files = 1;
-    auto logger = spdlog::rotating_logger_mt("logger", logFilePath.string(), max_size, max_files);
+    auto logger = spdlog::basic_logger_mt("logger", logFilePath.string(), /*truncate=*/true);
     logger->flush_on(spdlog::level::debug);
     logger->set_level(spdlog::level::info);
     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%l][%t] %v");

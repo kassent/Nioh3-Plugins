@@ -2146,4 +2146,53 @@ Asset hash: 0x59B6B63B | 0000000143726508 | kids::automaton::CameraRigUnits
 Asset hash: 0x342CCB58 | 0000000143726380 | kids::automaton::kids_env_CameraRig  
 Asset hash: 0x10CD0067 | 00000001437262A0 | kids::automaton::kids_env_CameraRigUnits  
 Asset hash: 0x53FB678D | 00000001437261B0 | kids::automaton::kids_impl_SetAlbedoEmissiveScaleParams9  
+
+
+
+.rdata:00000001438B3038 10 47 44 42 01 00 00 00                       dq offset sub_142444710
+.rdata:00000001438B3040 18 21 E1 43 01 00 00 00                       dq offset aModelSetdisp ; "Model::SetDisp"
+.rdata:00000001438B3048 40 AE C4 40 01 00 00 00                       dq offset sub_140C4AE40
+.rdata:00000001438B3050 60 1D E1 43 01 00 00 00                       dq offset aModelFadein  ; "Model::FadeIn"
+.rdata:00000001438B3058 DC 05 E4 40 01 00 00 00                       dq offset sub_140E405DC
+.rdata:00000001438B3060 70 1D E1 43 01 00 00 00                       dq offset aModelFadeout ; "Model::FadeOut"
+.rdata:00000001438B3068 B8 C3 DE 40 01 00 00 00                       dq offset sub_140DEC3B8
+.rdata:00000001438B3070 80 1D E1 43 01 00 00 00                       dq offset aModelSetpartsd ; "Model::SetPartsDisp"
+.rdata:00000001438B3078 88 51 CB 40 01 00 00 00                       dq offset sub_140CB5188
+.rdata:00000001438B3080 98 1D E1 43 01 00 00 00                       dq offset aModelSetpartss ; "Model::SetPartsSetDisp"
+.rdata:00000001438B3088 E8 E2 43 42 01 00 00 00                       dq offset sub_14243E2E8
+.rdata:00000001438B3090 B0 1D E1 43 01 00 00 00                       dq offset aModelFadeinpar ; "Model::FadeInParts"
+.rdata:00000001438B3098 38 DD 43 42 01 00 00 00                       dq offset sub_14243DD38
+.rdata:00000001438B30A0 C8 1D E1 43 01 00 00 00                       dq offset aModelFadeoutpa ; "Model::FadeOutParts"
+.rdata:00000001438B30A8 D8 DD 43 42 01 00 00 00                       dq offset sub_14243DDD8
+.rdata:00000001438B30B0 E0 1D E1 43 01 00 00 00                       dq offset aModelSetshadow ; "Model::SetShadowDisp"
+.rdata:00000001438B30B8 AC E4 43 42 01 00 00 00                       dq offset sub_14243E4AC
+.rdata:00000001438B30C0 F8 1D E1 43 01 00 00 00                       dq offset aModelSetposand ; "Model::SetPosAndRotByBone"
+.rdata:00000001438B30C8 A0 E3 43 42 01 00 00 00                       dq offset sub_14243E3A0
+.rdata:00000001438B30D0 18 1E E1 43 01 00 00 00                       dq offset aModelSetemissi ; "Model::SetEmissiveRate"
+.rdata:00000001438B30D8 60 E0 43 42 01 00 00 00                       dq offset sub_14243E060
+.rdata:00000001438B30E0 30 1E E1 43 01 00 00 00                       dq offset aModelSetemissi_0 ; "Model::SetEmissiveRateParts"
+.rdata:00000001438B30E8 F4 E0 43 42 01 00 00 00                       dq offset sub_14243E0F4
+.rdata:00000001438B30F0 50 1E E1 43 01 00 00 00                       dq offset aModelClearemis ; "Model::ClearEmissiveRate"
+.rdata:00000001438B30F8 A0 DA 43 42 01 00 00 00                       dq offset sub_14243DAA0
+.rdata:00000001438B3100 70 1E E1 43 01 00 00 00                       dq offset aModelSettokoya ; "Model::SetTokoyamiRim"
+.rdata:00000001438B3108 44 E5 43 42 01 00 00 00                       dq offset sub_14243E544
+.rdata:00000001438B3110 88 1E E1 43 01 00 00 00                       dq offset aModelSethighli ; "Model::SetHighLightInterArea"
+.rdata:00000001438B3118 6C 8A DA 40 01 00 00 00                       dq offset sub_140DA8A6C
+.rdata:00000001438B3120 A8 1E E1 43 01 00 00 00                       dq offset aModelSethighli_0 ; "Model::SetHighLightInterAreaHeight"
+.rdata:00000001438B3128 C4 89 DA 40 01 00 00 00                       dq offset sub_140DA89C4
+.rdata:00000001438B3130 D0 1E E1 43 01 00 00 00                       dq offset aModelSethighli_1 ; "Model::SetHighLightInterAreaRideHorse"
+.rdata:00000001438B3138 50 E2 43 42 01 00 00 00                       dq offset sub_14243E250
+.rdata:00000001438B3140 F8 1E E1 43 01 00 00 00                       dq offset aModelSethighli_2 ; "Model::SetHighLightInterAreaHeightRideH"...
+.rdata:00000001438B3148 A0 E1 43 42 01 00 00 00                       dq offset sub_14243E1A0
+.rdata:00000001438B3150 00 23 E1 43 01 00 00 00                       dq offset aModelDestructi ; "Model::DestructionImpulse"
+.rdata:00000001438B3158 F0 19 DB 40 01 00 00 00                       dq offset sub_140DB19F0
+.rdata:00000001438B3160 20 23 E1 43 01 00 00 00                       dq offset aModelDestructi_0 ; "Model::DestructionLastAttack"
+.rdata:00000001438B3168 04 DB 43 42 01 00 00 00                       dq offset sub_14243DB04
+.rdata:00000001438B3170 40 23 E1 43 01 00 00 00                       dq offset aModelSetdestru ; "Model::SetDestructionDispFlag"
+.rdata:00000001438B3178 6C DF 43 42 01 00 00 00                       dq offset sub_14243DF6C
+.rdata:00000001438B3180 60 23 E1 43 01 00 00 00                       dq offset aModelSetdestru_0 ; "Model::SetDestructionDeleteTimer"
+.rdata:00000001438B3188 74 DE 43 42 01 00 00 00                       dq offset sub_14243DE74
+.rdata:00000001438B3190 88 23 E1 43 01 00 00 00                       dq offset aModelSetdistan ; "Model::SetDistanceCulling"
+.rdata:00000001438B3198 B4 7B F1 40 01 00 00 00                       dq offset sub_140F17BB4
+.rdata:00000001438B31A0 A8 23 E1 43 01 00 00 00                       dq offset aModelSetdistan_0 ; "Model::SetDistanceCullingDefault"
 ```

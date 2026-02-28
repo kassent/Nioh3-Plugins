@@ -133,7 +133,7 @@ struct Location13 {
 `ArchiveExploler.GetEntryData` 在 `Offset` 处读 `IDRK` 块：
 - `ReadKRDIContainer()` 校验 magic 为 `IDRK`
 - 读取 56 字节 `KRDIHeader`
-- 读取 `ParamCount * 12` 的参数表
+- 读取 `ParamHeaderCount * 12` 的参数表
 - 读取 `ParamDataSize` 的参数数据
 - 后续读取 payload（压缩或原始）
 
@@ -145,7 +145,7 @@ struct Location13 {
   - `CompressedSize=0x4552D`
   - `UncompressedSize=0x80B60`
   - `Flags=0x00100000`（压缩类型=1，即 zlib）
-  - `ParamCount=0`
+  - `ParamHeaderCount=0`
 
 > 说明：该样本中 `0x10 + AllBlockSize == 文件总长度`，即 `PDRK(16字节) + 1个IDRK块`。
 
@@ -163,7 +163,7 @@ struct KRDIHeader {       // 56 bytes
     int    HashType;
     uint   Flags;          // 压缩类型位于 [25:20]
     uint   ResourceId;
-    int    ParamCount;
+    int    ParamHeaderCount;
 }
 
 struct KRDIParam {        // 12 bytes
@@ -206,7 +206,7 @@ compressionType = (Flags >> 20) & 0x3F
 1. 先从旧位置读取原始 KRDI（保留头字段/参数表/ParamData）。
 2. `CreateModifiedIDRK` 构造新块：
    - 清除压缩位：`noCompressionFlags = rawFlags & ~(0x3F << 20)`
-   - `AllBlockSize = 56 + ParamCount*12 + ParamDataSize + modData.Length`
+   - `AllBlockSize = 56 + ParamHeaderCount*12 + ParamDataSize + modData.Length`
    - `CompressedSize = UncompressedSize = modData.Length`
    - 参数区保持原值，payload 换成 `modData`
 3. 追加写入容器尾部（16 字节对齐后 append）。

@@ -50,12 +50,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
     if (reason == DLL_PROCESS_ATTACH) {
         _MESSAGE("Initializing plugin: %s, version: %d.%d.%d",
             PLUGIN_NAME, PLUGIN_VERSION_MAJOR, PLUGIN_VERSION_MINOR, PLUGIN_VERSION_PATCH);
-
-        if (!g_branchTrampoline.Create(160)) {
-            _MESSAGE("couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
-            return FALSE;
-        }
-        _MESSAGE("Branch trampoline created.");
     }
     return TRUE;
 }

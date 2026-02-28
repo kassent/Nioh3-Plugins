@@ -6,6 +6,7 @@
 #include <HookUtils.h>
 #include <LogUtils.h>
 
+#include <cstdint>
 #include <filesystem>
 
 #include <cstdio>
@@ -21,7 +22,7 @@ namespace {
 using ArchiveManager = GameManager::ArchiveManager;
 using FnLoadAssetFromFile =
     bool (*)(std::uintptr_t, std::uintptr_t, ArchiveManager*, void*, void*, std::uintptr_t,
-        GameAsset*, RdbRuntimeEntryDesc*, IAssetStreamReader*,
+        GameAsset*, RDBDescriptor*, IFileStreamReader*,
         std::uintptr_t, std::uintptr_t, void*, void*, bool);
 
 using FnRegisterAssetHandler = bool (*)(void*, std::uint32_t, IBaseGameAssetHandler*);
@@ -47,79 +48,31 @@ std::string FormatDiskSize(std::uint64_t size) {
 }
 
 
-std::optional<bool> TryLoadAssetOverride(
-    FnLoadAssetFromFile     original,
-    std::uintptr_t          param1, 
-    std::uintptr_t          param2, 
-    ArchiveManager*         archiveManager,
-    void*                   mountCallerCtx, 
-    void*                   mountCallbackCtx, 
-    std::uintptr_t          param6,
-    GameAsset*              targetAsset, 
-    RdbRuntimeEntryDesc*    rdbEntryDesc, 
-    IAssetStreamReader*     assetStreamReader,
-    std::uintptr_t          payloadDataOffset, 
-    std::uintptr_t          payloadSize, 
-    void*                   decompressor,
-    void*                   handlerUserCtx, 
-    bool                    requireDecompress
-) {
 
-    if (archiveManager == nullptr || targetAsset == nullptr || rdbEntryDesc == nullptr) {
-        return std::nullopt;
+bool InstallGetArchiveInfoFromAssetLoaderHook() {
+    using FnGetArchiveInfo = int32_t (*)(AssetReader*, AssetReader::ArchiveInfo*);
+    auto func = (FnGetArchiveInfo)HookUtils::ScanIDAPattern("E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 4C 8B 7E", 0, 1, 5);
+    if (func == nullptr) {
+        _MESSAGE("Failed to resolve GetArchiveInfo");
+        return false;
     }
 
-    const auto fileId = rdbEntryDesc->fileKtid;
-    if (fileId == 0xFFFFFFFF) {
-        return std::nullopt;
-    }
+    HookLambda(func, [](AssetReader* assetReader, AssetReader::ArchiveInfo* archiveInfo) -> int32_t {
+        int32_t errorCode = original(assetReader, archiveInfo);
 
-    const auto typeId = rdbEntryDesc->typeInfoKtid;
-    auto* assetHandler = (IBaseGameAssetHandler*)archiveManager->GetResHandlerFromType(typeId);
-    const std::string typeName = assetHandler ? assetHandler->GetTypeName() : "Unknown";
-
-    if (g_enableAssetLoadingLog) {
-        _MESSAGE("Loading asset: 0x%08X | Type: %s (0x%08X) | Size: %s", fileId, typeName.c_str(), typeId, FormatDiskSize(rdbEntryDesc->fileSize).c_str());
-    }
-
-    // auto resId = archiveManager->assetManager.assetIdManager.GetResIdByFileKtid(fileId);
-    // _MESSAGE("ResId: %u, fileId: %08X, typeId: %08X", resId, fileId, typeId);
-
-    // auto *resItem = archiveManager->assetManager.assetIdManager.GetResItemById(resId);
-    // _MESSAGE("ResItem: %p, targetAsset: %p", resItem, targetAsset);
-    const auto overridePath = g_modAssetManager.Find(fileId);
-    if (!overridePath.has_value()) {
-        return std::nullopt;
-    }
-    
-    std::error_code ec;
-    if (!fs::exists(*overridePath, ec) || !fs::is_regular_file(*overridePath, ec)) {
-        return std::nullopt;
-    }
-
-    auto reader = std::make_unique<ModFileReader>(*overridePath);
-    if (!reader->IsOpen()) {
-        _MESSAGE("Failed to open mod asset file: %s", overridePath->string().c_str());
-        return std::nullopt;
-    }
-
-
-    const auto oldFlags = rdbEntryDesc->flags;
-    rdbEntryDesc->flags = oldFlags | 0x100000;
-
-    const bool result = original(
-        param1, param2, archiveManager, mountCallerCtx, mountCallbackCtx, param6,
-        targetAsset, rdbEntryDesc, reader.get(), payloadDataOffset, payloadSize,
-        nullptr, handlerUserCtx, false);
-    if (result) {
-        _MESSAGE("Loaded mod asset successfully: 0x%08X | Type: %s (0x%08X) | %s",
-                fileId, typeName.c_str(), typeId, overridePath->string().c_str());
-    } else {
-        _MESSAGE("Failed to load mod asset: 0x%08X | Type: %s (0x%08X) | %s",
-                fileId, typeName.c_str(), typeId, overridePath->string().c_str());
-    }
-    rdbEntryDesc->flags = oldFlags;
-    return result;
+        // _MESSAGE("GetArchiveInfo result: %d, fileHandle: %p, path: %s", errorCode, assetReader->archiveFileHandle, archiveInfo->filePath);
+        auto *streamReader = assetReader->streamReader;
+        if (errorCode == 0 && streamReader != nullptr && streamReader->GetID() == ModFileReader::kModFileReaderId) {
+            auto *modFileReader = (ModFileReader*)streamReader;
+            std::string vanillaFilePath = archiveInfo->filePath;
+            auto filePath = modFileReader->GetFilePath();
+            std::strncpy(archiveInfo->filePath, filePath.c_str(), filePath.size());
+            archiveInfo->filePath[filePath.size()] = '\0';
+            _MESSAGE("Redirect streaming file path: %s -> %s", vanillaFilePath.c_str(), filePath.c_str());
+        }
+        return errorCode;
+    });
+    return true;
 }
 
 #ifdef _DEBUG
@@ -134,22 +87,18 @@ bool InstallRegisterAssetHandlerHook() {
 
     HookLambda(registerAssetHandler, [](void* archiveManager, std::uint32_t assetHash,
                                       IBaseGameAssetHandler* assetHandler) -> bool {
-        char buf[256] = {0};
         if (assetHandler) {
             do {
-                __try {
-                    const char* typeName = nullptr;
-                    assetHandler->GetTypeName(typeName);
-                    if (typeName) {
-                        snprintf(buf, sizeof(buf), "%s", typeName);
-                    } else {
-                        snprintf(buf, sizeof(buf), "Unknown");
-                    }
-                } __except (EXCEPTION_EXECUTE_HANDLER) {
-                    break;
-                }
+                std::string handlerTypeName = assetHandler->GetTypeName();
+                _MESSAGE("--------------------------------");
                 _MESSAGE("Asset ID: 0x%08X | %p | %s ",
-                    assetHash, assetHandler->GetVtableAddr(), buf);
+                    assetHash, assetHandler->GetVtableAddr(), handlerTypeName.c_str());
+                
+                static std::unique_ptr<IBaseGameAssetHandler::ObjectField[]> fields = std::make_unique<IBaseGameAssetHandler::ObjectField[]>(1024);
+                const uint32_t fieldCount = assetHandler->ResolveFields(fields.get(), 1024, 0);
+                for (uint32_t i = 0; i < fieldCount; ++i) {
+                    _MESSAGE("    %d: %s(%08X) %08X", i, fields[i].name, fields[i].nameHash, fields[i].typeFlags);
+                }
             } while (0);
         }
 
@@ -161,77 +110,100 @@ bool InstallRegisterAssetHandlerHook() {
 
 }  // namespace
 
-bool InstallLoadAssetFromFileHook() {
-    auto loadAssetFromFile = reinterpret_cast<FnLoadAssetFromFile>(
-        HookUtils::ScanIDAPattern("E8 ? ? ? ? 48 8B 8F ? ? ? ? 48 8B 53", 0, 1, 5));
-    if (loadAssetFromFile == nullptr) {
-        _MESSAGE("Failed to resolve LoadAssetFromFile");
+
+bool InstallDeserializeAssetHook() {
+    auto patchAddress = HookUtils::ScanIDAPattern("FF 93 B0 ? ? ? 48 8D 4D ? 49 89 45");
+    if (patchAddress == 0) {
+        _MESSAGE("Failed to resolve DeserializeAsset");
         return false;
     }
-    _MESSAGE("LoadAssetFromFile: %p", loadAssetFromFile);
+    // _MESSAGE("DeserializeAsset: %p", patchAddress);
 
-    HookLambda(loadAssetFromFile, [](
-        std::uintptr_t          param1, 
-        std::uintptr_t          param2, 
-        ArchiveManager*         archiveManager,
-        void*                   mountCallerCtx, 
-        void*                   mountCallbackCtx, 
-        std::uintptr_t          param6,
-        GameAsset*              targetAsset, 
-        RdbRuntimeEntryDesc*    rdbEntryDesc, 
-        IAssetStreamReader*     assetStreamReader, 
-        std::uintptr_t          payloadDataOffset, 
-        std::uintptr_t          payloadSize, 
-        void*                   decompressor, 
-        void*                   handlerUserCtx, 
-        bool                    requireDecompress
-    ) -> bool {
-        if (const auto overrideResult = 
-            TryLoadAssetOverride(
-                original, 
-                param1, 
-                param2, 
-                archiveManager, 
-                mountCallerCtx, 
-                mountCallbackCtx, 
-                param6,
-                targetAsset, 
-                rdbEntryDesc, 
-                assetStreamReader, 
-                payloadDataOffset, 
-                payloadSize,
-                decompressor, 
-                handlerUserCtx, 
-                requireDecompress
-            ); overrideResult.has_value()) {
-            return *overrideResult;
-        }
+    // FF 93 B0 00 00 00
+    uint8_t nopBytes[] = {0x90, 0x90, 0x90, 0x90, 0x90, 0x90};
+    HookUtils::SafeWriteBuf(patchAddress, nopBytes, sizeof(nopBytes));
 
-        return original(
-            param1, 
-            param2, 
-            archiveManager, 
-            mountCallerCtx, 
-            mountCallbackCtx, 
-            param6, 
-            targetAsset, 
-            rdbEntryDesc, 
-            assetStreamReader, 
-            payloadDataOffset, 
-            payloadSize, 
-            decompressor, 
-            handlerUserCtx, 
-            requireDecompress
-        );
+    static auto deserializeAssetMidHook = safetyhook::create_mid(patchAddress, [](SafetyHookContext& ctx) {
+        auto *assetHandler = (IBaseGameAssetHandler*)ctx.rcx;
+        auto *loadingContext = (AssetLoadingContext*)ctx.rdx;
+        auto *assetReader = (AssetReader*)ctx.r8;
+        auto *archiveManager = assetReader->archiveManager;
+        auto *gameAsset = loadingContext->gameAsset;
+        auto assetFileSize = assetReader->assetFileSize;
+
+        // _MESSAGE("assetHandler: %p, loadingContext: %p, assetReader: %p, archiveManager: %p, gameAsset: %p, assetFileSize: %llu",
+        //         assetHandler, loadingContext, assetReader, archiveManager, gameAsset, assetFileSize);
+
+        do {
+            if (gameAsset == nullptr || archiveManager == nullptr) {
+                break;
+            }
+            auto fileKtid = archiveManager->assetManager.assetIdManager.GetFileKtIdFromRes(gameAsset);
+            if (fileKtid == 0xFFFFFFFF) {
+                break;
+            }
+            const auto typeId = gameAsset->typeInfoKtid;
+            const std::string typeName = assetHandler ? assetHandler->GetTypeName() : "Unknown";
+        
+            if (g_enableAssetLoadingLog) {
+                _MESSAGE("\tLoading asset: 0x%08X | Type: %s (0x%08X) | Size: %s", fileKtid, typeName.c_str(), typeId, FormatDiskSize(assetFileSize).c_str());
+            }
+            // auto resId = archiveManager->assetManager.assetIdManager.GetResIdByFileKtid(fileKtid);
+            // _MESSAGE("ResId: %u, fileKtid: %08X, typeId: %08X", resId, fileKtid, typeId);
+
+            // auto *resItem = archiveManager->assetManager.assetIdManager.GetResItemById(resId);
+            // _MESSAGE("ResItem: %p, targetAsset: %p", resItem, targetAsset);
+            const auto overridePath = g_modAssetManager.Find(fileKtid);
+            if (!overridePath.has_value()) {
+                break;
+            }
+
+            std::error_code ec;
+            if (!fs::exists(*overridePath, ec) || !fs::is_regular_file(*overridePath, ec)) {
+                break;
+            }
+
+            auto reader = std::make_unique<ModFileReader>(*overridePath);
+            if (!reader->IsOpen()) {
+                _MESSAGE("Failed to open mod asset file: %s", overridePath->string().c_str());
+                break;
+            }
+
+            assetReader->streamReader = reader.get();
+            assetReader->assetFileSize = reader->GetFileSize();
+            assetReader->archiveFileOffset = 0;
+
+            auto *assetData = assetHandler->Deserialize(loadingContext, assetReader, (void*)ctx.r9);
+
+            if (assetData) {
+                _MESSAGE("Loaded mod asset successfully: 0x%08X | Type: %s (0x%08X) | %s",
+                        fileKtid, typeName.c_str(), typeId, overridePath->string().c_str());
+            } else {
+                _MESSAGE("Failed to load mod asset: 0x%08X | Type: %s (0x%08X) | %s",
+                        fileKtid, typeName.c_str(), typeId, overridePath->string().c_str());
+            }
+
+            ctx.rax = (uintptr_t)assetData;
+            return;
+
+        } while (false);
+
+        
+        // call original deserialize function
+        auto *assetData = assetHandler->Deserialize(loadingContext, assetReader, (void*)ctx.r9);
+        ctx.rax = (uintptr_t)assetData;
     });
 
     return true;
 }
 
-
 bool InstallHooks() {
-    if (!InstallLoadAssetFromFileHook()) {
-        _MESSAGE("Failed to install LoadAssetFromFile hook");
+    if (!InstallDeserializeAssetHook()) {
+        _MESSAGE("Failed to install DeserializeAsset hook");
+        return false;
+    }
+    if (!InstallGetArchiveInfoFromAssetLoaderHook()) {
+        _MESSAGE("Failed to install GetArchiveInfoFromAssetLoader hook");
         return false;
     }
 #ifdef _DEBUG

@@ -84,12 +84,20 @@ std::uint64_t ModFileReader::Read(void* dst, std::uint64_t dstOffset, std::uint6
     return (after > before) ? static_cast<std::uint64_t>(after - before) : 0;
 }
 
-std::uint64_t ModFileReader::QueryCapability() {
-    return 0;
+std::uint64_t ModFileReader::GetID() const {
+    return kModFileReaderId;
 }
 
 bool ModFileReader::IsOpen() const {
     return stream_.is_open();
+}
+
+std::uint64_t ModFileReader::GetFileSize() const {
+    return fileSize_;
+}
+
+std::string ModFileReader::GetFilePath() const {
+    return filePath_.generic_string();
 }
 
 }  // namespace LooseFileLoader
