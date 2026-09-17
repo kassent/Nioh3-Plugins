@@ -8,7 +8,7 @@
 
 #define PLUGIN_NAME "LooseFileLoader"
 #define PLUGIN_VERSION_MAJOR 1
-#define PLUGIN_VERSION_MINOR 2
+#define PLUGIN_VERSION_MINOR 3
 #define PLUGIN_VERSION_PATCH 0
 
 namespace LooseFileLoader {
@@ -86,7 +86,7 @@ struct GameManager {
 
         DEF_MEMBER_FN_REL_CONST(GetResItemById, GameAsset *, 0x09CF148, "E8 ? ? ? ? 49 8B 95 ? ? ? ? 4C 8B C0 E8", 0, 1, 5, uint32_t a_resId);
 
-        DEF_MEMBER_FN_REL_CONST(GetResIDFromRes, uint32_t, 0x0591960, "E8 ? ? ? ? 45 33 E4 85 DB", 0, 1, 5, GameAsset * a_res);
+        DEF_MEMBER_FN_REL_CONST(GetResIDFromRes, uint32_t, 0x04A7A30, "E8 ? ? ? ? 8B C8 44 8B C6", 0, 1, 5, GameAsset * a_res);
 
         DEF_MEMBER_FN_REL_CONST(GetFileKtIdFromRes, uint32_t, 0x13F5A80, "E8 ? ? ? ? 49 8D AF ? ? ? ? 8B D0", 0, 1, 5, GameAsset * a_res);
     };
@@ -134,7 +134,7 @@ struct GameManager {
         uint8_t unk00[0x210];
         AssetManager assetManager;  // +0x210
 
-        DEF_MEMBER_FN_REL_CONST(GetResHandlerFromType, void *, 0x0183E5C, "E8 ? ? ? ? 8B 76 ? 4C 8B E0", 0, 1, 5, uint32_t a_typeInfoKtid);
+        DEF_MEMBER_FN_REL_CONST(GetResHandlerFromType, void *, 0x02386FC, "E8 ? ? ? ? 45 33 C9 4C 89 4D", 0, 1, 5, uint32_t a_typeInfoKtid);
     };
     static_assert(offsetof(ArchiveManager, assetManager) == 0x210);
 
@@ -146,7 +146,7 @@ struct GameManager {
     }
 };
 static_assert(offsetof(GameManager, archiveManager) == 0x530);
-inline REL::Relocation<GameManager**> g_gameMain(REL::Pattern(0x4566990, "48 8B 05 ? ? ? ? 44 0F 28 D3", 0, 3, 7));
+inline REL::Relocation<GameManager**> g_gameMain(REL::Pattern(0x4759910, "48 8B 15 ? ? ? ? 0F 57 D2", 0, 3, 7));
 
 #pragma pack(pop)
 
@@ -173,11 +173,12 @@ public:
 
     struct ArchiveInfo {
         uint64_t field00[0x28 >> 3]; // +0x00
-        char     filePath[512]; // +0x28
+        char     filePath[1024]; // +0x28
     };
     static_assert(offsetof(ArchiveInfo, filePath) == 0x28);
+    static_assert(sizeof(ArchiveInfo) == 0x428);
 
-    DEF_MEMBER_FN_REL_CONST(GetArchiveInfo, bool, 0x05E8C50, "E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 4C 8B 7E", 0, 1, 5, ArchiveInfo * a_archiveInfo);
+    DEF_MEMBER_FN_REL_CONST(GetArchiveInfo, int32_t, 0x05E8C50, "E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 4C 8B 7E", 0, 1, 5, ArchiveInfo * a_archiveInfo);
 };
 static_assert(offsetof(AssetReader, archiveManager) == 0x08);
 static_assert(offsetof(AssetReader, streamReader) == 0x10);

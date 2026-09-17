@@ -11,7 +11,7 @@
 #define PLUGIN_NAME "UnlimitedTransmog"
 #define PLUGIN_VERSION_MAJOR 1
 #define PLUGIN_VERSION_MINOR 0
-#define PLUGIN_VERSION_PATCH 3
+#define PLUGIN_VERSION_PATCH 4
 
 namespace {
     struct UserConfig {
@@ -52,7 +52,7 @@ namespace {
 
 
     // 语义：近战武器 group -> type
-    // 对应 IDA: sub_142393D40
+    // 对应 2.0.2.0: sub_142344940 的逆向映射
     int32_t GetMeleeWeaponDisplayType(int weaponGroup) {
         switch (weaponGroup) {
             case 6409:  return 0;
@@ -69,30 +69,32 @@ namespace {
             case 6102:  return 11;
             case 1254:  return 12;
             case 9554:  return 13;
+            case 4866:  return 14;
+            case 13257: return 15;
             default:    return -1;
         }
     }
     
     // 语义：远程武器 group -> type
-    // 对应 IDA: sub_142393E0C
+    // 对应 2.0.2.0: sub_142345178 的逆向映射
     int32_t GetRangedWeaponDisplayType(int rangedGroup) {
         switch (rangedGroup) {
-            case 59886: return 14;
-            case 49224: return 15;
-            case 51013: return 16;
+            case 59886: return 16;
+            case 49224: return 17;
+            case 51013: return 18;
             default:    return -1;
         }
     }
     
     // 语义：防具 group -> type
-    // 这是 ConvertSlotTypeToArmorType_1423939DC 的逆向映射
+    // 对应 2.0.2.0: sub_142344430 的逆向映射
     int32_t GetArmorDisplayType(int armorGroup) {
         switch (armorGroup) {
-            case 3577:  return 17; // head
-            case 11055: return 18; // chest
-            case 1975:  return 19; // arms
-            case 16443: return 20; // knee/waist
-            case 2473:  return 21; // legs
+            case 3577:  return 19; // head
+            case 11055: return 20; // chest
+            case 1975:  return 21; // arms
+            case 16443: return 22; // knee/waist
+            case 2473:  return 23; // legs
             default:    return -1;
         }
     }
@@ -114,25 +116,27 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
     _MESSAGE("Game version: %s", param->game_version_string);
     _MESSAGE("Plugin dir: %s", param->plugins_dir);
 
-    // RELOC_MEMBER_FN(ItemDataManager, GetItemData, "E8 ? ? ? ? 45 33 C0 48 85 C0 74 ? 48 8B 87", 0, 1, 5);
-    // RELOC_GLOBAL_VAL(GetLocalizedString, "E8 ? ? ? ? 33 F6 48 C7 45 ? ? ? ? ? 48 8D 1D", 0, 1, 5);
-    // RELOC_GLOBAL_VAL(g_resManager, "48 8B 05 ? ? ? ? 41 8B D7 48 8B 98", 0, 3, 7);
-
     auto config = LoadUserConfig(param);
 
-    auto patchAddr1 = HookUtils::ScanIDAPattern("E8 ? ? ? ? 84 C0 74 ? 45 8B ? 49 8B D3");
+    auto patchAddr1 = HookUtils::ScanIDAPattern("E8 ? ? ? ? 84 C0 74 ? 45 8B C5 49");
     if (!patchAddr1) {
         _MESSAGE("patchAddr1 not found.");
-        return true;
+        return false;
     }
 
     if (config.enableSamuraiNinjaSharedTransmog) {
-        auto patchAddr2 = HookUtils::LookupFunctionPattern((void*)patchAddr1,"45 8B C5 49 8B D3", 0x100);
+        auto patchAddr2 = HookUtils::LookupFunctionPattern((void*)patchAddr1, "45 8B C5 49 8B D6", 0x100);
         if (!patchAddr2) {
             _MESSAGE("patchAddr2 not found.");
-            return true;
+            return false;
         }
         patchAddr2 += 6;
+
+        auto patchAddr3 = HookUtils::LookupFunctionPattern((void*)patchAddr2, "E8 ? ? ? ? 84 C0 74 ? 44 0F B7 44 24 20", 0x100);
+        if (!patchAddr3) {
+            _MESSAGE("patchAddr3 not found.");
+            return false;
+        }
 
         using FnFilterItemByType = bool(*)(void*, ItemData* item, int32_t itemType);
         static auto filterItemByTypeOriginal = (FnFilterItemByType)HookUtils::ReadOffsetData(patchAddr2, 1, 5);
@@ -140,15 +144,9 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
         uint8_t nops[] = {0x90, 0x90, 0x90, 0x90, 0x90};
         HookUtils::SafeWriteBuf(patchAddr2, nops, sizeof(nops));
 
-        auto patchAddr3 = HookUtils::LookupFunctionPattern((void*)patchAddr2,"E8 ? ? ? ? 84 C0 74 ? 45 0F B7 C4", 0x100);
-        if (!patchAddr3) {
-            _MESSAGE("patchAddr3 not found.");
-            return true;
-        }
         uint8_t codes[] = {0xB0, 0x01, 0x90, 0x90, 0x90};
         _MESSAGE("Found addr for samurai-ninja shared-transmog check: %p", patchAddr3);
         HookUtils::SafeWriteBuf(patchAddr3, codes, sizeof(codes));
-
 
         static auto filterItemByTypeMidHook = safetyhook::create_mid(patchAddr2, [](SafetyHookContext& ctx) {
             auto itemType = static_cast<uint32_t>(ctx.r8);
@@ -160,7 +158,7 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
                 if (itemType == 2) result = filterItemByTypeOriginal(nullptr, itemData, 3);
                 if (itemType == 3) result = filterItemByTypeOriginal(nullptr, itemData, 2);
             }
-            ctx.rax = result;  
+            ctx.rax = result;
         });
     } else {
         _MESSAGE("Samurai-ninja shared-transmog disabled by config.");
@@ -169,9 +167,9 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
     if (config.enableUnlockAllTransmog) {
         _MESSAGE("Found addr for equipment unlock check: %p", patchAddr1);
         static auto isItemUnlockedMidHook = safetyhook::create_mid(patchAddr1 + 5, [](SafetyHookContext& ctx) {
-            auto itemId = static_cast<uint16_t>(ctx.r12);
-            auto *itemData = (*g_resManager)->itemData->GetItemData(itemId);
-            ctx.rax = !itemData || itemData->GetName().empty() || GetItemDisplayType(itemData) == -1 ? 0 : 1;    
+            // 2.0.2.0: R14 是当前 ItemData*，R12 已不是 itemId。
+            auto *itemData = (ItemData*)ctx.r14;
+            ctx.rax = !itemData || itemData->GetName().empty() || GetItemDisplayType(itemData) == -1 ? 0 : 1;
         });
     } else {
         _MESSAGE("Unlock-all-equipment disabled by config.");

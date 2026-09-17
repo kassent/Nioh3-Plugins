@@ -7,6 +7,7 @@
 #include <LogUtils.h>
 
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 
 #include <cstdio>
@@ -66,8 +67,11 @@ namespace LooseFileLoader {
 					auto* modFileReader = (ModFileReader*)streamReader;
 					std::string vanillaFilePath = archiveInfo->filePath;
 					auto filePath = modFileReader->GetFilePath();
-					std::strncpy(archiveInfo->filePath, filePath.c_str(), filePath.size());
-					archiveInfo->filePath[filePath.size()] = '\0';
+					if (filePath.size() >= sizeof(archiveInfo->filePath)) {
+						_MESSAGE("Mod file path too long for ArchiveInfo: %s", filePath.c_str());
+						return -15;
+					}
+					std::memcpy(archiveInfo->filePath, filePath.c_str(), filePath.size() + 1);
 					_MESSAGE("Redirect streaming file path: %s -> %s", vanillaFilePath.c_str(), filePath.c_str());
 				}
 				return errorCode;

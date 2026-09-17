@@ -117,12 +117,13 @@ static_assert(sizeof(InventoryItemData) == 0xE8);
 struct ItemData {
     uint64_t unk00[0x48 >> 3];
     uint32_t unk48;           // +0x48
-    uint32_t weaponType;      // +0x4C
-    uint32_t gunType;         // +0x50
-    uint32_t armorType;       // +0x54
-    uint32_t unk58;           // +0x58
-    uint32_t nameHash;        // +0x5C
-    uint64_t unk60[(0xA0 - 0x60) >> 3];
+    uint32_t unk4C[(0x58 - 0x4C) >> 2];
+    uint32_t weaponType;      // +0x58
+    uint32_t gunType;         // +0x5C
+    uint32_t armorType;       // +0x60
+    uint32_t unk64;           // +0x64
+    uint32_t nameHash;        // +0x68
+    uint32_t unk6C[(0xA0 - 0x6C) >> 2];
     uint32_t unkA0;           // +0xA0
     uint32_t flagA4;          // +0xA4
     uint64_t unkA8[(0x150 - 0xA8) >> 3];
@@ -172,8 +173,10 @@ struct ItemData {
     // GetItemDisplayName_1405A900C(ItemData_1404B9470, v6, 0, 255);
     DEF_MEMBER_FN_CONST(GetItemDisplayName, wchar_t*, 0x02BC264, GameWStringWrapper* a_outName, int32_t a_param1, int32_t a_param2);
 };
-static_assert(offsetof(ItemData, unk58) == 0x58);
-static_assert(offsetof(ItemData, nameHash) == 0x5C);
+static_assert(offsetof(ItemData, weaponType) == 0x58);
+static_assert(offsetof(ItemData, gunType) == 0x5C);
+static_assert(offsetof(ItemData, armorType) == 0x60);
+static_assert(offsetof(ItemData, nameHash) == 0x68);
 static_assert(offsetof(ItemData, category) == 0x182);
 static_assert(offsetof(ItemData, rarity) == 0x184);
 static_assert(offsetof(ItemData, flagA4) == 0xA4);
@@ -433,7 +436,7 @@ static_assert(offsetof(ResourceManager, SoulCoreData) == 0x110);
 static_assert(offsetof(ResourceManager, qualityConfigData) == 0x9A0);
 
 
-inline REL::Relocation<ResourceManager**> g_resManager(REL::Pattern(0x438B8E0, "48 8B 05 ? ? ? ? 41 8B D7 48 8B 98", 0, 3, 7));
+inline REL::Relocation<ResourceManager**> g_resManager(REL::Pattern(0x45B9E30, "4C 8B 05 ? ? ? ? 44 8B FF", 0, 3, 7));
 
 // --- Runtime asset bootstrap ---
 // 0223.exe
@@ -474,7 +477,7 @@ struct GameManager {
 
         DEF_MEMBER_FN_REL_CONST(GetResItemById, GameAsset *, 0x09CF148, "E8 ? ? ? ? 49 8B 95 ? ? ? ? 4C 8B C0 E8", 0, 1, 5, uint32_t a_resId);
 
-        DEF_MEMBER_FN_REL_CONST(GetResIDFromRes, uint32_t, 0x0591960, "E8 ? ? ? ? 45 33 E4 85 DB", 0, 1, 5, GameAsset * a_res);
+        DEF_MEMBER_FN_REL_CONST(GetResIDFromRes, uint32_t, 0x04A7A30, "E8 ? ? ? ? 8B C8 44 8B C6", 0, 1, 5, GameAsset * a_res);
 
         DEF_MEMBER_FN_REL_CONST(GetFileKtIdFromRes, uint32_t, 0x13F5A80, "E8 ? ? ? ? 49 8D AF ? ? ? ? 8B D0", 0, 1, 5, GameAsset * a_res);
     };
@@ -522,7 +525,7 @@ struct GameManager {
         uint8_t unk00[0x210];
         AssetManager assetManager;  // +0x210
 
-        DEF_MEMBER_FN_REL_CONST(GetResHandlerFromType, void *, 0x0183E5C, "E8 ? ? ? ? 8B 76 ? 4C 8B E0", 0, 1, 5, uint32_t a_typeInfoKtid);
+        DEF_MEMBER_FN_REL_CONST(GetResHandlerFromType, void *, 0x02386FC, "E8 ? ? ? ? 45 33 C9 4C 89 4D", 0, 1, 5, uint32_t a_typeInfoKtid);
     };
     static_assert(offsetof(ArchiveManager, assetManager) == 0x210);
 
@@ -534,7 +537,7 @@ struct GameManager {
     }
 };
 static_assert(offsetof(GameManager, archiveManager) == 0x530);
-inline REL::Relocation<GameManager**> g_gameMain(REL::Pattern(0x4566990, "48 8B 05 ? ? ? ? 44 0F 28 D3", 0, 3, 7));
+inline REL::Relocation<GameManager**> g_gameMain(REL::Pattern(0x4759910, "48 8B 15 ? ? ? ? 0F 57 D2", 0, 3, 7));
 
 // --- Game state ---
 
@@ -662,7 +665,7 @@ inline REL::Relocation<FnGetDifficultyMode> GetDifficultyMode(REL::Offset(0x0142
 
 using FnGetLocalizedString = wchar_t* (*)(uint32_t a_key);
 inline REL::Relocation<FnGetLocalizedString> GetLocalizedString(
-    REL::Pattern(0x02D8F1C, "E8 ? ? ? ? 33 F6 48 C7 45 ? ? ? ? ? 48 8D 1D", 0, 1, 5)
+    REL::Pattern(0x05A4B04, "E8 ? ? ? ? 48 8B C8 4C 8B C3 66", 0, 1, 5)
 );
 
 using FnGetItemData = ItemData* (*)(void* a_resourceManager, uint16_t a_itemId);
